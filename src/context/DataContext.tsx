@@ -71,7 +71,7 @@ const defaultSettings: CompanySettings = {
 
   // New user settings defaults
   adminUsername: "smartadmin",
-  adminPassword: "Ani@2024",
+  adminPassword: "Admin@2026",
   employeePasswordReset: "emp123",
   sessionTimeout: "15",
 
@@ -116,9 +116,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const saved = localStorage.getItem("smartsave_settings");
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed.adminUsername !== "smartadmin" || parsed.adminPassword !== "Ani@2024") {
+      if (parsed.adminUsername !== "smartadmin" || parsed.adminPassword !== "Admin@2026") {
         parsed.adminUsername = "smartadmin";
-        parsed.adminPassword = "Ani@2024";
+        parsed.adminPassword = "Admin@2026";
         localStorage.setItem("smartsave_settings", JSON.stringify(parsed));
       }
       return parsed;
@@ -366,7 +366,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const updateSettings = (updates: Partial<CompanySettings>) => {
     const safeUpdates = { ...updates };
     if (safeUpdates.adminUsername) safeUpdates.adminUsername = "smartadmin";
-    if (safeUpdates.adminPassword) safeUpdates.adminPassword = "Ani@2024";
+    if (safeUpdates.adminPassword) safeUpdates.adminPassword = "Admin@2026";
     setSettings((prev) => ({ ...prev, ...safeUpdates }));
     addAuditLog("Update Settings", `Updated company settings`);
   };

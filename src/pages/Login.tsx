@@ -1,24 +1,40 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Wallet, Lock, User, ArrowRight, Phone } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
   const { login } = useAuth();
   const { members, settings, employees, markAttendance, addLoginHistory } = useData();
+  const navigate = useNavigate();
   
   const [loginType, setLoginType] = useState<"staff" | "member">("staff");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("smartsave_remember_me_username");
+    if (saved) {
+      setUsername(saved);
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (loginType === "staff") {
       const configuredAdminUsername = settings?.adminUsername || "smartadmin";
-      const configuredAdminPassword = settings?.adminPassword || "Ani@2024";
+      const configuredAdminPassword = settings?.adminPassword || "Admin@2026";
       if (username.toLowerCase() === configuredAdminUsername.toLowerCase() && password === configuredAdminPassword) {
+        if (rememberMe) {
+          localStorage.setItem("smartsave_remember_me_username", username);
+        } else {
+          localStorage.removeItem("smartsave_remember_me_username");
+        }
         login({ username: "Admin", role: "Super Admin" });
       } else {
         const matchedEmployee = employees.find(
@@ -33,6 +49,11 @@ export default function Login() {
           addLoginHistory(matchedEmployee.id);
           markAttendance(matchedEmployee.id, "Present");
           
+          if (rememberMe) {
+            localStorage.setItem("smartsave_remember_me_username", username);
+          } else {
+            localStorage.removeItem("smartsave_remember_me_username");
+          }
           login({
             username: matchedEmployee.name,
             role: "Employee",
@@ -47,6 +68,11 @@ export default function Login() {
       // Member login
       const member = members.find(m => m.phone === username);
       if (member && password === "123456") {
+        if (rememberMe) {
+          localStorage.setItem("smartsave_remember_me_username", username);
+        } else {
+          localStorage.removeItem("smartsave_remember_me_username");
+        }
         login({ username: member.name, role: "Member", name: member.name, memberId: member.id });
       } else {
         setError("Invalid mobile number or password (hint: pwd is 123456)");
@@ -159,6 +185,8 @@ export default function Login() {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 text-[#003366] focus:ring-[#003366] border-slate-300 rounded cursor-pointer"
                 />
                 <label
@@ -172,7 +200,7 @@ export default function Login() {
               <div className="text-sm">
                 <button
                   type="button"
-                  onClick={(e) => e.preventDefault()}
+                  onClick={() => navigate("/forgot-password")}
                   className="font-medium text-[#003366] hover:text-[#004080] bg-transparent border-none p-0 cursor-pointer"
                 >
                   Forgot password?
@@ -192,7 +220,7 @@ export default function Login() {
             
             {loginType === "staff" && (
               <div className="mt-4 text-xs text-slate-500 text-center flex flex-col gap-1">
-                <p>Admin: {settings?.adminUsername || "smartadmin"} / {settings?.adminPassword || "Ani@2024"}</p>
+                <p>Admin: {settings?.adminUsername || "smartadmin"} / {settings?.adminPassword || "Admin@2026"}</p>
                 <p>Employee: employee / emp123 (or check Employee Management)</p>
               </div>
             )}

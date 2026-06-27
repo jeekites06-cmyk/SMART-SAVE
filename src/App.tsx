@@ -10,6 +10,7 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import EmployeeManagement from "./pages/EmployeeManagement";
 import Commissions from "./pages/Commissions";
+import ForgotPassword from "./pages/ForgotPassword";
 import { DataProvider } from "./context/DataContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
@@ -32,94 +33,96 @@ function AppContent() {
 
   if (!user) {
     return (
-      <DataProvider>
-        <Login />
-      </DataProvider>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
     );
   }
 
   return (
-    <DataProvider>
-      <BrowserRouter>
-        <Layout onLogout={logout} user={user}>
-          <Routes>
-            <Route path="/" element={<Navigate to={user?.role === "Member" ? "/members" : "/dashboard"} replace />} />
-            <Route 
-              path="/dashboard" 
-              element={
-                <ProtectedRoute allowedRoles={["Super Admin", "Administrator", "Employee"]}>
-                  <Dashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/members" 
-              element={
-                <ProtectedRoute allowedRoles={["Super Admin", "Administrator", "Employee", "Member"]}>
-                  <Members />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/daily-collection" 
-              element={
-                <ProtectedRoute allowedRoles={["Super Admin", "Administrator", "Employee"]}>
-                  <DailyCollection />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/receipts" 
-              element={
-                <ProtectedRoute allowedRoles={["Super Admin", "Administrator", "Employee", "Member"]}>
-                  <Receipts />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/reports" 
-              element={
-                <ProtectedRoute allowedRoles={["Super Admin", "Administrator"]}>
-                  <Reports />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/employee-management" 
-              element={
-                <ProtectedRoute allowedRoles={["Super Admin", "Administrator"]}>
-                  <EmployeeManagement />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/commissions" 
-              element={
-                <ProtectedRoute allowedRoles={["Super Admin", "Administrator", "Employee"]}>
-                  <Commissions />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/settings" 
-              element={
-                <ProtectedRoute allowedRoles={["Super Admin", "Administrator"]}>
-                  <Settings />
-                </ProtectedRoute>
-              } 
-            />
-            <Route path="*" element={<Navigate to={user?.role === "Member" ? "/members" : "/dashboard"} replace />} />
-          </Routes>
-        </Layout>
-      </BrowserRouter>
-    </DataProvider>
+    <Layout onLogout={logout} user={user}>
+      <Routes>
+        <Route path="/" element={<Navigate to={user?.role === "Member" ? "/members" : "/dashboard"} replace />} />
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={["Super Admin", "Administrator", "Employee"]}>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/members" 
+          element={
+            <ProtectedRoute allowedRoles={["Super Admin", "Administrator", "Employee", "Member"]}>
+              <Members />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/daily-collection" 
+          element={
+            <ProtectedRoute allowedRoles={["Super Admin", "Administrator", "Employee"]}>
+              <DailyCollection />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/receipts" 
+          element={
+            <ProtectedRoute allowedRoles={["Super Admin", "Administrator", "Employee", "Member"]}>
+              <Receipts />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/reports" 
+          element={
+            <ProtectedRoute allowedRoles={["Super Admin", "Administrator"]}>
+              <Reports />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/employee-management" 
+          element={
+            <ProtectedRoute allowedRoles={["Super Admin", "Administrator"]}>
+              <EmployeeManagement />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/commissions" 
+          element={
+            <ProtectedRoute allowedRoles={["Super Admin", "Administrator", "Employee"]}>
+              <Commissions />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/settings" 
+          element={
+            <ProtectedRoute allowedRoles={["Super Admin", "Administrator"]}>
+              <Settings />
+            </ProtectedRoute>
+          } 
+        />
+        <Route path="*" element={<Navigate to={user?.role === "Member" ? "/members" : "/dashboard"} replace />} />
+      </Routes>
+    </Layout>
   );
 }
 
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <DataProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </DataProvider>
     </AuthProvider>
   );
 }

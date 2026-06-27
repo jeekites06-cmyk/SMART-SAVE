@@ -78,7 +78,7 @@ export default function Settings() {
     autoReceiptNumber: settings?.autoReceiptNumber !== false,
 
     adminUsername: settings?.adminUsername || "smartadmin",
-    adminPassword: settings?.adminPassword || "Ani@2024",
+    adminPassword: settings?.adminPassword || "Admin@2026",
     employeePasswordReset: settings?.employeePasswordReset || "emp123",
     sessionTimeout: settings?.sessionTimeout || "15",
 
