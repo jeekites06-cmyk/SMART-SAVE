@@ -1,0 +1,6 @@
+{
+  "name": "SMART SAVE",
+  "description": "A professional finance dashboard and daily collection management system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
