@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { Wallet, Mail, ArrowLeft, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useData } from "../context/DataContext";
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
+  const { settings } = useData();
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
@@ -20,11 +22,19 @@ export default function ForgotPassword() {
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="flex justify-center items-center gap-3 mb-8">
-          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-xl">
-            <Wallet className="w-10 h-10 text-[#003366]" />
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-xl overflow-hidden p-1.5 shrink-0">
+            {settings?.companyLogo ? (
+              <img
+                src={settings.companyLogo}
+                alt="Logo"
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <Wallet className="w-10 h-10 text-[#003366]" />
+            )}
           </div>
-          <h2 className="text-4xl font-extrabold text-white tracking-tight">
-            SMART SAVE
+          <h2 className="text-4xl font-extrabold text-white tracking-tight break-all">
+            {settings?.companyName || "SMART SAVE"}
           </h2>
         </div>
       </div>

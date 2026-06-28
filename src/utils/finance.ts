@@ -5,8 +5,8 @@ export function getFinancialConstants() {
     dailyDeposit: 127,
     memberSavings: 102,
     companyCollection: 25,
-    bonusFund: 15,
-    companyProfit: 10
+    bonusFund: 0,
+    companyProfit: 0
   };
 }
 
@@ -26,8 +26,8 @@ export function calculateCollectionBreakdown(amount: number, type: string) {
   
   const savings = units * constants.memberSavings;
   const companyCollection = units * constants.companyCollection;
-  const bonus = units * constants.bonusFund;
-  const companyProfit = units * constants.companyProfit;
+  const bonus = savings * 0.60;
+  const companyProfit = companyCollection;
 
   return {
     savingsFund: savings,
@@ -118,6 +118,6 @@ export function calculateFinancialSummary(
     todayCollection,
     todayTransactionsCount,
     companyDailyProfit,
-    totalCompanyRevenue: registrationRevenue + totalCompanyProfit
+    totalCompanyRevenue: registrationRevenue + totalCompanyCommission
   };
 }

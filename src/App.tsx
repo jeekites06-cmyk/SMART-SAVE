@@ -11,6 +11,7 @@ import Settings from "./pages/Settings";
 import EmployeeManagement from "./pages/EmployeeManagement";
 import Commissions from "./pages/Commissions";
 import ForgotPassword from "./pages/ForgotPassword";
+import Reminders from "./pages/Reminders";
 import { DataProvider } from "./context/DataContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
@@ -98,6 +99,14 @@ function AppContent() {
           element={
             <ProtectedRoute allowedRoles={["Super Admin", "Administrator", "Employee"]}>
               <Commissions />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/reminders" 
+          element={
+            <ProtectedRoute allowedRoles={["Super Admin", "Administrator", "Employee"]}>
+              <Reminders />
             </ProtectedRoute>
           } 
         />

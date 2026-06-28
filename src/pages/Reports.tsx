@@ -255,17 +255,27 @@ export default function Reports() {
     const doc = new jsPDF("landscape");
     
     // Smart Save Logo / Header
+    let textX = 14;
+    if (settings?.companyLogo) {
+      try {
+        doc.addImage(settings.companyLogo, "PNG", 14, 10, 22, 22);
+        textX = 40;
+      } catch (e) {
+        // Ignored gracefully if invalid
+      }
+    }
+
     doc.setFontSize(22);
     doc.setTextColor(0, 51, 102);
-    doc.text(settings?.companyName || "SMART SAVE FINANCIAL SYSTEMS", 14, 20);
+    doc.text(settings?.companyName || "SMART SAVE FINANCIAL SYSTEMS", textX, 20);
     
     doc.setFontSize(14);
     doc.setTextColor(100);
-    doc.text(reportType, 14, 28);
+    doc.text(reportType, textX, 28);
     
     doc.setFontSize(10);
-    doc.text(`Generated Date & Time: ${new Date().toLocaleString()}`, 14, 34);
-    doc.text(`Prepared By: Admin`, 14, 40);
+    doc.text(`Generated Date & Time: ${new Date().toLocaleString()}`, textX, 34);
+    doc.text(`Prepared By: Admin`, textX, 40);
 
     if (reportType === "Employee Performance Report") {
       autoTable(doc, {

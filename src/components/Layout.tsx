@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import React, { useEffect, useState, useRef } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -16,9 +16,67 @@ import {
   Download,
   UserCheck,
   Coins,
+  Lock,
+  Key,
+  Check,
+  AlertCircle,
+  Shield,
+  Eye,
+  EyeOff,
+  UserPlus,
+  FileText,
+  CheckCheck,
+  Camera,
+  Trash2,
 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { User } from "../types";
 import { useData } from "../context/DataContext";
+import { useAuth } from "../context/AuthContext";
+
+interface NotificationItem {
+  id: string;
+  title: string;
+  description: string;
+  time: string;
+  type: "member" | "collection" | "due" | "report";
+  isRead: boolean;
+}
+
+const initialNotifications: NotificationItem[] = [
+  {
+    id: "1",
+    title: "New Member Registered",
+    description: "A new member profile has been authorized and registered into the database.",
+    time: "Today • 10:30 AM",
+    type: "member",
+    isRead: false,
+  },
+  {
+    id: "2",
+    title: "Daily Collection Completed",
+    description: "All standard daily payment collections from assigned agents have been synchronized.",
+    time: "Today • 09:15 AM",
+    type: "collection",
+    isRead: false,
+  },
+  {
+    id: "3",
+    title: "12 Members Payment Due",
+    description: "Warning: Several accounts have entered outstanding collection cycles.",
+    time: "Today • 08:00 AM",
+    type: "due",
+    isRead: false,
+  },
+  {
+    id: "4",
+    title: "Report Generated",
+    description: "The analytical financial summary has been compiled and is now available.",
+    time: "Yesterday",
+    type: "report",
+    isRead: true,
+  },
+];
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -27,10 +85,184 @@ interface LayoutProps {
 }
 
 export default function Layout({ children, onLogout, user }: LayoutProps) {
+  const navigate = useNavigate();
+  const { login } = useAuth();
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const location = useLocation();
-  const { backupData } = useData();
+  const { backupData, settings, employees, updateEmployee, updateSettings, members, collections, updateMember } = useData();
   const [showBackupReminder, setShowBackupReminder] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [activeModal, setActiveModal] = useState<"profile" | "password" | "account" | "notifications" | null>(null);
+  const [tempPhoto, setTempPhoto] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const notificationRef = useRef<HTMLDivElement>(null);
+
+  // Notification States
+  const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
+    const saved = localStorage.getItem("smartsave_notifications_list");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // Fallback
+      }
+    }
+    return initialNotifications;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("smartsave_notifications_list", JSON.stringify(notifications));
+  }, [notifications]);
+
+  // States for password change
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [showPwdCurrent, setShowPwdCurrent] = useState(false);
+  const [showPwdNew, setShowPwdNew] = useState(false);
+  const [showPwdConfirm, setShowPwdConfirm] = useState(false);
+
+  // States for Account Preferences (for Employees/Members who can't access settings)
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactAddress, setContactAddress] = useState("");
+  const [accountSuccess, setAccountSuccess] = useState(false);
+
+  // Find corresponding employee if logged in user is Employee
+  const loggedInEmployee = React.useMemo(() => {
+    if (user.role === "Employee") {
+      return employees.find(emp => emp.username === user.username);
+    }
+    return null;
+  }, [user.username, user.role, employees]);
+
+  // Unified resolver for active user's profile photo
+  const resolvedUserPhoto = React.useMemo(() => {
+    if (user.photo) return user.photo;
+    if (user.role === "Employee") {
+      const emp = employees.find(e => e.username === user.username);
+      return emp?.photo;
+    }
+    if (user.role === "Member") {
+      const mem = members.find(m => m.id === user.memberId || m.name === user.username);
+      return mem?.photo;
+    }
+    return settings?.adminPhoto;
+  }, [user.photo, user.role, user.username, user.memberId, employees, members, settings?.adminPhoto]);
+
+  const unpaidTodayCount = React.useMemo(() => {
+    if (!members || !collections) return 0;
+    const todayDateStr = new Date().toISOString().split("T")[0];
+    return members.filter((m) => {
+      const plans = m.plans || [
+        {
+          id: `${m.id}-PLAN-1`,
+          dailyAmount: parseInt(m.dailyAmount || "127", 10),
+          status: m.status === "Active" ? "Active" : "Closed",
+          startDate: m.joinDate
+        }
+      ];
+      const activePlans = plans.filter(p => p.status === "Active");
+      const totalDailyAmount = activePlans.reduce((sum, p) => sum + p.dailyAmount, 0) || parseInt(m.dailyAmount || "127", 10);
+      
+      const mCols = collections.filter((c) => c.memberId === m.id && c.type === "Daily Deposit");
+      const todayPaid = mCols.some((c) => c.timestamp.startsWith(todayDateStr) && parseInt(c.amount || "0", 10) >= totalDailyAmount);
+      return !todayPaid && totalDailyAmount > 0;
+    }).length;
+  }, [members, collections]);
+
+  useEffect(() => {
+    if (loggedInEmployee) {
+      setContactPhone(loggedInEmployee.phone || "");
+      setContactEmail(loggedInEmployee.email || "");
+      setContactAddress(loggedInEmployee.address || "");
+    }
+  }, [loggedInEmployee]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setNotificationDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handlePasswordChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError("");
+    setPasswordSuccess(false);
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError("All fields are required.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords do not match.");
+      return;
+    }
+
+    if (newPassword.length < 4) {
+      setPasswordError("Password must be at least 4 characters long.");
+      return;
+    }
+
+    // Check role and update password
+    if (user.role === "Super Admin" || user.role === "Administrator") {
+      const actualCurrent = settings.adminPassword || "Admin@2026";
+      if (currentPassword !== actualCurrent) {
+        setPasswordError("Incorrect current password.");
+        return;
+      }
+      updateSettings({ adminPassword: newPassword });
+      setPasswordSuccess(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } else if (user.role === "Employee") {
+      if (!loggedInEmployee) {
+        setPasswordError("Employee record not found.");
+        return;
+      }
+      const actualCurrent = loggedInEmployee.password || "emp123";
+      if (currentPassword !== actualCurrent) {
+        setPasswordError("Incorrect current password.");
+        return;
+      }
+      updateEmployee(loggedInEmployee.id, { password: newPassword });
+      setPasswordSuccess(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } else {
+      setPasswordSuccess(true);
+    }
+  };
+
+  const handleAccountUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAccountSuccess(false);
+
+    if (user.role === "Employee" && loggedInEmployee) {
+      updateEmployee(loggedInEmployee.id, {
+        phone: contactPhone,
+        email: contactEmail,
+        address: contactAddress
+      });
+      setAccountSuccess(true);
+    }
+  };
 
   useEffect(() => {
     const lastBackup = localStorage.getItem("smartsave_last_backup");
@@ -69,6 +301,7 @@ export default function Layout({ children, onLogout, user }: LayoutProps) {
         { name: "Daily Collection", path: "/daily-collection", icon: Wallet },
         { name: "Commissions", path: "/commissions", icon: Coins },
         { name: "Receipts", path: "/receipts", icon: ReceiptText },
+        { name: "Reminder Center", path: "/reminders", icon: Bell },
         { name: "Reports", path: "/reports", icon: BarChart3 },
         { name: "Settings", path: "/settings", icon: Settings },
       ];
@@ -79,6 +312,7 @@ export default function Layout({ children, onLogout, user }: LayoutProps) {
         { name: "Daily Collection", path: "/daily-collection", icon: Wallet },
         { name: "My Commissions", path: "/commissions", icon: Coins },
         { name: "Receipts", path: "/receipts", icon: ReceiptText },
+        { name: "Reminder Center", path: "/reminders", icon: Bell },
       ];
     } else {
       // Member
@@ -100,12 +334,20 @@ export default function Layout({ children, onLogout, user }: LayoutProps) {
         } bg-[#0f172a] text-slate-300 flex-shrink-0 transition-all duration-300 ease-in-out flex flex-col hidden md:flex`}
       >
         <div className="p-6 flex items-center space-x-3 h-[72px]">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-            <Wallet className="w-6 h-6 text-white" />
+          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden p-0.5">
+            {settings?.companyLogo ? (
+              <img
+                src={settings.companyLogo}
+                alt="Logo"
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <Wallet className="w-6 h-6 text-white" />
+            )}
           </div>
           {sidebarOpen && (
-            <span className="text-xl font-bold tracking-tight text-white uppercase whitespace-nowrap">
-              SMART SAVE
+            <span className="text-xl font-bold tracking-tight text-white uppercase whitespace-nowrap overflow-hidden text-ellipsis">
+              {settings?.companyName || "SMART SAVE"}
             </span>
           )}
         </div>
@@ -169,21 +411,254 @@ export default function Layout({ children, onLogout, user }: LayoutProps) {
           </div>
 
           <div className="flex items-center space-x-4">
-            <button
-              type="button"
-              className="p-2 text-slate-500 hover:bg-slate-100 rounded-full"
-            >
-              <Bell className="w-6 h-6" />
-            </button>
+            <div className="relative" ref={notificationRef}>
+              <button
+                type="button"
+                onClick={() => setNotificationDropdownOpen(!notificationDropdownOpen)}
+                title={unpaidTodayCount > 0 ? `${unpaidTodayCount} Members have not paid today.` : "Notifications"}
+                className="p-2 text-slate-500 hover:bg-slate-100 rounded-full relative cursor-pointer"
+              >
+                <Bell className="w-6 h-6" />
+                {(notifications.filter((n) => !n.isRead).length + (unpaidTodayCount > 0 ? 1 : 0)) > 0 && (
+                  <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white font-bold text-[10px] rounded-full flex items-center justify-center border-2 border-white animate-pulse">
+                    {notifications.filter((n) => !n.isRead).length + (unpaidTodayCount > 0 ? 1 : 0)}
+                  </span>
+                )}
+              </button>
 
-            <div className="flex items-center space-x-3 pl-4 border-l border-slate-200">
-              <div className="hidden sm:block text-right">
-                <p className="text-sm font-semibold">{user.username}</p>
-                <p className="text-xs text-slate-500">{user.role}</p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white shadow-sm flex items-center justify-center font-bold text-slate-600">
-                {user.username.charAt(0).toUpperCase()}
-              </div>
+              <AnimatePresence>
+                {notificationDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                    className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden"
+                  >
+                    {/* Header */}
+                    <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                      <div className="flex items-center space-x-2">
+                        <Bell className="w-4 h-4 text-blue-600" />
+                        <span className="font-bold text-slate-800 text-sm">Notifications</span>
+                        {notifications.filter((n) => !n.isRead).length > 0 && (
+                          <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-bold text-[10px]">
+                            {notifications.filter((n) => !n.isRead).length} New
+                          </span>
+                        )}
+                      </div>
+                      {notifications.filter((n) => !n.isRead).length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+                          }}
+                          className="text-xs font-semibold text-blue-600 hover:text-blue-800 cursor-pointer flex items-center space-x-1"
+                        >
+                          <CheckCheck className="w-3.5 h-3.5 mr-1" />
+                          <span>Mark All as Read</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
+                      {unpaidTodayCount > 0 && (
+                        <div 
+                          onClick={() => {
+                            setNotificationDropdownOpen(false);
+                            navigate("/reminders");
+                          }}
+                          className="p-4 bg-rose-50/80 hover:bg-rose-50 border-b border-rose-100 flex items-start space-x-3 transition-colors cursor-pointer relative"
+                        >
+                          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-rose-100 text-rose-600">
+                            <AlertCircle className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 min-w-0 pr-4">
+                            <p className="text-xs font-bold text-rose-800">
+                              Payment Due Alert
+                            </p>
+                            <p className="text-[11px] text-rose-700 mt-0.5 font-semibold">
+                              {unpaidTodayCount} Members have not paid today.
+                            </p>
+                            <p className="text-[10px] text-rose-500 mt-1">Live Update • Tap to view</p>
+                          </div>
+                          <span className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
+                        </div>
+                      )}
+                      {notifications.length === 0 ? (
+                        <div className="p-8 text-center text-slate-400 text-xs font-medium">
+                          No new notifications.
+                        </div>
+                      ) : (
+                        notifications.map((n) => {
+                          let iconBg = "bg-blue-50 text-blue-600";
+                          let IconComponent = FileText;
+
+                          if (n.type === "member") {
+                            iconBg = "bg-emerald-50 text-emerald-600";
+                            IconComponent = UserPlus;
+                          } else if (n.type === "collection") {
+                            iconBg = "bg-amber-50 text-amber-600";
+                            IconComponent = Coins;
+                          } else if (n.type === "due") {
+                            iconBg = "bg-red-50 text-red-600";
+                            IconComponent = AlertCircle;
+                          }
+
+                          return (
+                            <div
+                              key={n.id}
+                              onClick={() => {
+                                setNotifications(
+                                  notifications.map((item) =>
+                                    item.id === n.id ? { ...item, isRead: true } : item
+                                  )
+                                );
+                              }}
+                              className={`p-4 flex items-start space-x-3 hover:bg-slate-50 transition-colors cursor-pointer relative ${
+                                !n.isRead ? "bg-blue-50/20" : ""
+                              }`}
+                            >
+                              <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
+                                <IconComponent className="w-4 h-4" />
+                              </div>
+                              <div className="flex-1 min-w-0 pr-4">
+                                <p className={`text-xs ${!n.isRead ? "font-bold text-slate-800" : "text-slate-600"}`}>
+                                  {n.title}
+                                </p>
+                                <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">
+                                  {n.description}
+                                </p>
+                                <p className="text-[10px] text-slate-400 mt-1">{n.time}</p>
+                              </div>
+                              {!n.isRead && (
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-blue-600" />
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="px-5 py-3 border-t border-slate-100 flex justify-between bg-slate-50/50">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNotificationDropdownOpen(false);
+                          setActiveModal("notifications");
+                        }}
+                        className="text-xs font-bold text-slate-600 hover:text-slate-800 cursor-pointer"
+                      >
+                        View All Notifications
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNotificationDropdownOpen(false)}
+                        className="text-xs font-semibold text-slate-400 hover:text-slate-600 cursor-pointer"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex items-center space-x-3 pl-4 border-l border-slate-200 cursor-pointer focus:outline-none focus:ring-0 group select-none text-left"
+              >
+                <div className="hidden sm:block text-right">
+                  <p className="text-sm font-semibold text-slate-800 group-hover:text-blue-600 transition-colors">
+                    SMART SAVE
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white shadow-sm flex items-center justify-center font-bold text-slate-600 group-hover:border-blue-500 transition-colors overflow-hidden">
+                  {resolvedUserPhoto ? (
+                    <img src={resolvedUserPhoto} alt={user.username} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    user.username.charAt(0).toUpperCase()
+                  )}
+                </div>
+              </button>
+
+              <AnimatePresence>
+                {dropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                    className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50 overflow-hidden"
+                  >
+                    <div className="p-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          setActiveModal("profile");
+                        }}
+                        className="flex items-center w-full px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors text-left cursor-pointer"
+                      >
+                        <UserIcon className="w-4 h-4 mr-2.5 text-slate-400" />
+                        My Profile
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          setActiveModal("password");
+                          // Reset form states
+                          setPasswordError("");
+                          setPasswordSuccess(false);
+                          setCurrentPassword("");
+                          setNewPassword("");
+                          setConfirmPassword("");
+                        }}
+                        className="flex items-center w-full px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors text-left cursor-pointer"
+                      >
+                        <Key className="w-4 h-4 mr-2.5 text-slate-400" />
+                        Change Password
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          if (user.role === "Super Admin" || user.role === "Administrator") {
+                            navigate("/settings");
+                          } else {
+                            setActiveModal("account");
+                            setAccountSuccess(false);
+                          }
+                        }}
+                        className="flex items-center w-full px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors text-left cursor-pointer"
+                      >
+                        <Settings className="w-4 h-4 mr-2.5 text-slate-400" />
+                        Account Settings
+                      </button>
+                    </div>
+
+                    <div className="border-t border-slate-100 p-1 mt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          onLogout();
+                        }}
+                        className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors text-left font-medium cursor-pointer"
+                      >
+                        <LogOut className="w-4 h-4 mr-2.5 text-red-500" />
+                        Logout
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </header>
@@ -218,6 +693,580 @@ export default function Layout({ children, onLogout, user }: LayoutProps) {
           {children}
         </main>
       </div>
+
+      {/* Profile Modal */}
+      <AnimatePresence>
+        {activeModal === "profile" && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setActiveModal(null)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.95, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, y: 20, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-md overflow-hidden relative z-10"
+            >
+              <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center">
+                  <UserIcon className="w-5 h-5 mr-2 text-blue-600" /> My Profile
+                </h3>
+                <button
+                  onClick={() => setActiveModal(null)}
+                  className="text-slate-400 hover:text-slate-600 hover:bg-slate-200 p-1.5 rounded-lg transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6">
+                <div className="flex flex-col items-center mb-6">
+                  <div className="relative group mb-3">
+                    <div className="w-24 h-24 rounded-full border-4 border-slate-100 shadow-md overflow-hidden bg-slate-50 flex items-center justify-center">
+                      {tempPhoto ? (
+                        <img 
+                          src={tempPhoto} 
+                          alt="Preview" 
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : resolvedUserPhoto ? (
+                        <img 
+                          src={resolvedUserPhoto} 
+                          alt={user.username} 
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <span className="text-2xl font-extrabold text-blue-600 uppercase">
+                          {user.username.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+
+                    <label className="absolute -bottom-1 -right-1 bg-[#003366] text-white p-2 rounded-full cursor-pointer hover:bg-blue-800 transition-colors shadow-lg">
+                      <Camera className="w-4 h-4" />
+                      <input 
+                        type="file" 
+                        accept="image/jpeg,image/png,image/webp" 
+                        className="hidden" 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 2 * 1024 * 1024) {
+                              setPhotoError("Maximum size: 2 MB.");
+                              return;
+                            }
+                            const validFormats = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+                            if (!validFormats.includes(file.type)) {
+                              setPhotoError("Supported formats: JPG, PNG, WEBP.");
+                              return;
+                            }
+                            setPhotoError(null);
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setTempPhoto(reader.result as string);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  {photoError && (
+                    <p className="text-xs text-red-500 font-semibold mb-2">{photoError}</p>
+                  )}
+
+                  {/* Actions for preview and removal */}
+                  <div className="flex gap-2 mb-3">
+                    {tempPhoto && (
+                      <>
+                        <button
+                          onClick={() => {
+                            if (user.role === "Employee" && loggedInEmployee) {
+                              updateEmployee(loggedInEmployee.id, { photo: tempPhoto });
+                            } else if (user.role === "Member" && user.memberId) {
+                              updateMember(user.memberId, { photo: tempPhoto });
+                            } else {
+                              updateSettings({ ...settings, adminPhoto: tempPhoto });
+                            }
+                            login({ ...user, photo: tempPhoto });
+                            setTempPhoto(null);
+                          }}
+                          className="text-xs px-2.5 py-1 bg-emerald-600 text-white rounded font-semibold hover:bg-emerald-700 transition-colors cursor-pointer"
+                        >
+                          Save Photo
+                        </button>
+                        <button
+                          onClick={() => {
+                            setTempPhoto(null);
+                            setPhotoError(null);
+                          }}
+                          className="text-xs px-2.5 py-1 bg-slate-200 text-slate-700 rounded font-semibold hover:bg-slate-300 transition-colors cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    )}
+
+                    {!tempPhoto && resolvedUserPhoto && (
+                      <button
+                        onClick={() => {
+                          if (window.confirm("Remove your profile photo?")) {
+                            if (user.role === "Employee" && loggedInEmployee) {
+                              updateEmployee(loggedInEmployee.id, { photo: "" });
+                            } else if (user.role === "Member" && user.memberId) {
+                              updateMember(user.memberId, { photo: "" });
+                            } else {
+                              updateSettings({ ...settings, adminPhoto: "" });
+                            }
+                            login({ ...user, photo: "" });
+                            setTempPhoto(null);
+                          }
+                        }}
+                        className="text-xs px-2 py-1 text-red-600 hover:bg-red-50 rounded font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Remove Photo
+                      </button>
+                    )}
+                  </div>
+
+                  <h4 className="text-lg font-extrabold text-slate-800">{user.username}</h4>
+                  <span className="px-3 py-1 text-xs font-bold bg-blue-100 text-blue-700 rounded-full uppercase tracking-wider mt-1.5">
+                    {user.role}
+                  </span>
+                </div>
+
+                <div className="space-y-4 border-t border-slate-100 pt-4">
+                  <div>
+                    <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Username / Login ID</p>
+                    <p className="text-sm font-medium text-slate-800 mt-0.5">{user.username}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Access Level</p>
+                    <p className="text-sm font-medium text-slate-800 mt-0.5 flex items-center">
+                      <Shield className="w-4 h-4 mr-1.5 text-emerald-500" />
+                      {user.role === "Super Admin" || user.role === "Administrator" ? "Full Access" : "Limited Access"}
+                    </p>
+                  </div>
+
+                  {user.role === "Employee" && loggedInEmployee && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Full Name</p>
+                          <p className="text-sm font-medium text-slate-800 mt-0.5">{loggedInEmployee.name}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Phone</p>
+                          <p className="text-sm font-medium text-slate-800 mt-0.5">{loggedInEmployee.phone}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Email</p>
+                          <p className="text-sm font-medium text-slate-800 mt-0.5 truncate" title={loggedInEmployee.email}>{loggedInEmployee.email}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Designation</p>
+                          <p className="text-sm font-medium text-slate-800 mt-0.5">{loggedInEmployee.designation}</p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {!(user.role === "Employee" && loggedInEmployee) && (
+                    <div>
+                      <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Managed Brand</p>
+                      <p className="text-sm font-medium text-slate-800 mt-0.5">{settings?.companyName || "SMART SAVE FINANCIAL SYSTEMS"}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button
+                  onClick={() => setActiveModal(null)}
+                  className="px-4 py-2 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Change Password Modal */}
+      <AnimatePresence>
+        {activeModal === "password" && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setActiveModal(null)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.95, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, y: 20, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-md overflow-hidden relative z-10"
+            >
+              <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center">
+                  <Lock className="w-5 h-5 mr-2 text-blue-600" /> Change Password
+                </h3>
+                <button
+                  onClick={() => setActiveModal(null)}
+                  className="text-slate-400 hover:text-slate-600 hover:bg-slate-200 p-1.5 rounded-lg transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handlePasswordChange}>
+                <div className="p-6 space-y-4">
+                  {passwordSuccess ? (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col items-center text-center">
+                      <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-3">
+                        <Check className="w-6 h-6" />
+                      </div>
+                      <h4 className="text-sm font-bold text-emerald-800">Password Changed Successfully!</h4>
+                      <p className="text-xs text-emerald-600 mt-1">Your security credentials have been updated successfully.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {passwordError && (
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-xs flex items-start">
+                          <AlertCircle className="w-4 h-4 mr-2 shrink-0 mt-0.5" />
+                          <span>{passwordError}</span>
+                        </div>
+                      )}
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-600">Current Password</label>
+                        <div className="relative">
+                          <input
+                            type={showPwdCurrent ? "text" : "password"}
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            placeholder="Enter current password"
+                            className="w-full border border-slate-200 px-3 py-2 pl-9 pr-10 rounded-lg text-sm bg-slate-50 focus:bg-white focus:border-blue-600 outline-none transition-all"
+                          />
+                          <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                          <button
+                            type="button"
+                            onClick={() => setShowPwdCurrent(!showPwdCurrent)}
+                            className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                          >
+                            {showPwdCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-600">New Password</label>
+                        <div className="relative">
+                          <input
+                            type={showPwdNew ? "text" : "password"}
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="Min. 4 characters"
+                            className="w-full border border-slate-200 px-3 py-2 pl-9 pr-10 rounded-lg text-sm bg-slate-50 focus:bg-white focus:border-blue-600 outline-none transition-all"
+                          />
+                          <Key className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                          <button
+                            type="button"
+                            onClick={() => setShowPwdNew(!showPwdNew)}
+                            className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                          >
+                            {showPwdNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-600">Confirm New Password</label>
+                        <div className="relative">
+                          <input
+                            type={showPwdConfirm ? "text" : "password"}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="Repeat new password"
+                            className="w-full border border-slate-200 px-3 py-2 pl-9 pr-10 rounded-lg text-sm bg-slate-50 focus:bg-white focus:border-blue-600 outline-none transition-all"
+                          />
+                          <Key className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                          <button
+                            type="button"
+                            onClick={() => setShowPwdConfirm(!showPwdConfirm)}
+                            className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                          >
+                            {showPwdConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal(null)}
+                    className="px-4 py-2 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                  >
+                    {passwordSuccess ? "Done" : "Cancel"}
+                  </button>
+                  {!passwordSuccess && (
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm cursor-pointer"
+                    >
+                      Update Password
+                    </button>
+                  )}
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Account Preferences Modal */}
+      <AnimatePresence>
+        {activeModal === "account" && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setActiveModal(null)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.95, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, y: 20, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-md overflow-hidden relative z-10"
+            >
+              <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center">
+                  <Settings className="w-5 h-5 mr-2 text-blue-600" /> Account Preferences
+                </h3>
+                <button
+                  onClick={() => setActiveModal(null)}
+                  className="text-slate-400 hover:text-slate-600 hover:bg-slate-200 p-1.5 rounded-lg transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleAccountUpdate}>
+                <div className="p-6 space-y-4">
+                  {accountSuccess ? (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col items-center text-center">
+                      <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-3">
+                        <Check className="w-6 h-6" />
+                      </div>
+                      <h4 className="text-sm font-bold text-emerald-800">Preferences Updated!</h4>
+                      <p className="text-xs text-emerald-600 mt-1">Your contact details have been successfully saved.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-slate-600 text-xs">
+                        Update your personal contact details here. Any other system updates must be requested through your administrator.
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-600">Phone Number</label>
+                        <input
+                          type="tel"
+                          value={contactPhone}
+                          onChange={(e) => setContactPhone(e.target.value)}
+                          placeholder="Enter phone number"
+                          className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm bg-slate-50 focus:bg-white focus:border-blue-600 outline-none transition-all font-medium"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-600">Email Address</label>
+                        <input
+                          type="email"
+                          value={contactEmail}
+                          onChange={(e) => setContactEmail(e.target.value)}
+                          placeholder="Enter email address"
+                          className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm bg-slate-50 focus:bg-white focus:border-blue-600 outline-none transition-all font-medium"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-600">Address</label>
+                        <textarea
+                          value={contactAddress}
+                          onChange={(e) => setContactAddress(e.target.value)}
+                          placeholder="Enter current address"
+                          rows={3}
+                          className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm bg-slate-50 focus:bg-white focus:border-blue-600 outline-none transition-all resize-none font-medium"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal(null)}
+                    className="px-4 py-2 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                  >
+                    {accountSuccess ? "Done" : "Cancel"}
+                  </button>
+                  {!accountSuccess && (
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm cursor-pointer"
+                    >
+                      Save Preferences
+                    </button>
+                  )}
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Notifications Modal */}
+      <AnimatePresence>
+        {activeModal === "notifications" && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setActiveModal(null)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.95, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, y: 20, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-lg overflow-hidden relative z-10"
+            >
+              <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center">
+                  <Bell className="w-5 h-5 mr-2 text-blue-600" /> System Notifications
+                </h3>
+                <div className="flex items-center space-x-2">
+                  {notifications.filter(n => !n.isRead).length > 0 && (
+                    <button
+                      onClick={() => {
+                        setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+                      }}
+                      className="text-xs font-semibold text-blue-600 hover:text-blue-800 cursor-pointer flex items-center space-x-1"
+                    >
+                      <CheckCheck className="w-3.5 h-3.5 mr-1" />
+                      <span>Mark all as read</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setActiveModal(null)}
+                    className="text-slate-400 hover:text-slate-600 hover:bg-slate-200 p-1.5 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="p-12 text-center text-slate-400 text-sm font-medium">
+                    No new notifications.
+                  </div>
+                ) : (
+                  notifications.map((n) => {
+                    let iconBg = "bg-blue-50 text-blue-600";
+                    let IconComponent = FileText;
+
+                    if (n.type === "member") {
+                      iconBg = "bg-emerald-50 text-emerald-600";
+                      IconComponent = UserPlus;
+                    } else if (n.type === "collection") {
+                      iconBg = "bg-amber-50 text-amber-600";
+                      IconComponent = Coins;
+                    } else if (n.type === "due") {
+                      iconBg = "bg-red-50 text-red-600";
+                      IconComponent = AlertCircle;
+                    }
+
+                    return (
+                      <div
+                        key={n.id}
+                        onClick={() => {
+                          setNotifications(
+                            notifications.map((item) =>
+                              item.id === n.id ? { ...item, isRead: true } : item
+                            )
+                          );
+                        }}
+                        className={`py-4 flex items-start space-x-4 hover:bg-slate-50/50 px-2 rounded-xl transition-colors cursor-pointer relative ${
+                          !n.isRead ? "bg-blue-50/5" : ""
+                        }`}
+                      >
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
+                          <IconComponent className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1 min-w-0 pr-4">
+                          <div className="flex items-center justify-between">
+                            <p className={`text-sm ${!n.isRead ? "font-bold text-slate-800" : "text-slate-600"}`}>
+                              {n.title}
+                            </p>
+                            {!n.isRead && (
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-bold text-[9px] uppercase tracking-wider">
+                                New
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-400 mt-1">{n.time}</p>
+                          <p className="text-xs text-slate-500 mt-1.5">
+                            {n.description}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setNotifications(initialNotifications);
+                  }}
+                  className="px-4 py-2 text-slate-500 hover:text-slate-700 text-xs font-semibold cursor-pointer mr-auto"
+                >
+                  Reset List
+                </button>
+                <button
+                  onClick={() => setActiveModal(null)}
+                  className="px-4 py-2 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

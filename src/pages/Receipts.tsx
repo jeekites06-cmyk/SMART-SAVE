@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { Collection } from "../types";
 import jsPDF from "jspdf";
 import { calculateCollectionBreakdown } from "../utils/finance";
-import { generateWhatsAppMessage, openWhatsApp } from "../utils/whatsapp";
+import { generateWhatsAppMessage, openWhatsApp, downloadReceiptPDF } from "../utils/whatsapp";
 
 export default function Receipts() {
   const { collections, settings, members } = useData();
@@ -38,130 +38,7 @@ export default function Receipts() {
   );
 
   const generatePDF = (receipt: Collection, action: "print" | "download") => {
-    const doc = new jsPDF();
-    
-    // Custom Company Logo if available
-    if (settings?.companyLogo) {
-      try {
-        doc.addImage(settings.companyLogo, "PNG", 20, 12, 20, 20);
-      } catch (e) {
-        // invalid image format ignored gracefully
-      }
-    }
-
-    // Header
-    doc.setFontSize(22);
-    doc.setTextColor(0, 51, 102); // #003366
-    doc.text(settings?.companyName || "SMART SAVE", 105, 20, { align: "center" });
-    
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(settings?.registrationNumber ? `Registration No: ${settings.registrationNumber}` : "Financial Systems", 105, 26, { align: "center" });
-    doc.text(settings?.address || "123 Financial Hub, Business Park, Phase 1, City Center", 105, 32, { align: "center" });
-    
-    const contactLine = `${settings?.contactEmail || "support@smartsave.com"} | ${settings?.supportPhone || "+91 1800 123 4567"}${settings?.website ? ` | ${settings.website}` : ""}`;
-    doc.text(contactLine, 105, 38, { align: "center" });
-    
-    if (settings?.gstNumber) {
-      doc.text(`GSTIN: ${settings.gstNumber}`, 105, 44, { align: "center" });
-    }
-    
-    // Divider
-    doc.setDrawColor(200);
-    doc.line(20, 47, 190, 47);
-
-    // Title
-    doc.setFontSize(16);
-    doc.setTextColor(0);
-    doc.text("PAYMENT RECEIPT", 105, 57, { align: "center" });
-
-    // Receipt Details
-    doc.setFontSize(11);
-    doc.text(`Receipt No: ${receipt.receiptNo || receipt.id}`, 20, 72);
-    doc.text(`Date: ${new Date(receipt.timestamp).toLocaleString()}`, 130, 72);
-    
-    doc.text(`Received From: ${receipt.memberName}`, 20, 87);
-    doc.text(`Member ID: ${receipt.memberId}`, 130, 87);
-
-    // Amount box
-    doc.setFillColor(245, 247, 250);
-    doc.rect(20, 102, 170, 55, "F");
-    
-    doc.setFontSize(12);
-    doc.setTextColor(100);
-    doc.text("Payment Type:", 30, 114);
-    doc.setTextColor(0);
-    doc.text(receipt.type, 30, 122);
-
-    doc.setFontSize(12);
-    doc.setTextColor(100);
-    doc.text("Total Amount:", 130, 114);
-    doc.setFontSize(16);
-    doc.setTextColor(0, 153, 51); // Greenish
-    doc.text(`Rs ${parseInt(receipt.amount, 10).toLocaleString()}`, 130, 124);
-
-    if (receipt.type === "Registration Fee") {
-      doc.setFontSize(10);
-      doc.setTextColor(100);
-      doc.text(`Registration Fee: Rs ${receipt.amount}`, 30, 137);
-    } else {
-      const breakdown = calculateCollectionBreakdown(parseInt(receipt.amount, 10), receipt.type);
-      const savings = breakdown.savingsFund;
-      const commission = breakdown.companyCommission;
-      const bonus = breakdown.bonusFund;
-      const profit = breakdown.companyProfit;
-
-      doc.setFontSize(10);
-      doc.setTextColor(100);
-      doc.text(`Savings Fund: Rs ${savings}`, 30, 137);
-      doc.text(`Company Commission: Rs ${commission}`, 130, 137);
-      doc.text(`Bonus Fund: Rs ${bonus}`, 30, 147);
-      doc.text(`Company Profit: Rs ${profit}`, 130, 147);
-    }
-
-    // Footer Notes
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Notes: ${receipt.notes || "None"}`, 20, 175);
-    
-    // Draw Company Stamp if available
-    if (settings?.companyStamp) {
-      try {
-        doc.addImage(settings.companyStamp, "PNG", 30, 185, 30, 30);
-        doc.setFontSize(8);
-        doc.text("Company Stamp", 35, 218);
-      } catch (e) {
-        // ignore invalid base64 image encoding
-      }
-    }
-
-    // Draw Authorized Signature if available
-    if (settings?.authorizedSignature) {
-      try {
-        doc.addImage(settings.authorizedSignature, "PNG", 140, 182, 35, 18);
-      } catch (e) {
-        // ignore invalid base64 image encoding
-      }
-    }
-    
-    doc.setFontSize(10);
-    doc.setDrawColor(150);
-    doc.line(130, 203, 180, 203);
-    doc.text("Authorized Signature", 140, 209);
-
-    // Receipt Custom Footer message
-    if (settings?.receiptFooter) {
-      doc.setFontSize(9);
-      doc.setTextColor(120);
-      doc.text(settings.receiptFooter, 105, 230, { align: "center" });
-    }
-
-    if (action === "download") {
-      doc.save(`Receipt_${receipt.receiptNo || receipt.id}.pdf`);
-    } else {
-      doc.autoPrint();
-      window.open(doc.output("bloburl"), "_blank");
-    }
+    downloadReceiptPDF(receipt, settings, action);
   };
 
   return (

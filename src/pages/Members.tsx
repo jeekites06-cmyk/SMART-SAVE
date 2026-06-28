@@ -13,18 +13,24 @@ import {
   Eye,
   Download,
   Printer,
-  MessageCircle
+  MessageCircle,
+  AlertCircle,
+  Clock,
+  Camera,
+  User as UserIcon
 } from "lucide-react";
 import { Member } from "../types";
 import { useData } from "../context/DataContext";
 import { calculateFinancialSummary, calculateCollectionBreakdown, getFinancialConstants } from "../utils/finance";
-import { generateWhatsAppMessage, openWhatsApp } from "../utils/whatsapp";
+import { generateWhatsAppMessage, openWhatsApp, downloadReceiptPDF as downloadReceiptPDFUtil } from "../utils/whatsapp";
+import { getMemberDueInfo } from "../utils/reminder";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import MemberProfileView from "../components/MemberProfileView";
 
 export default function Members() {
   const { user } = useAuth();
-  const { members, collections, addMember, updateMember, deleteMember, settings } = useData();
+  const { members, collections, addMember, updateMember, deleteMember, addMemberPlan, updateMemberPlanStatus, settings, addCollection } = useData();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -35,6 +41,10 @@ export default function Members() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [viewingMember, setViewingMember] = useState<Member | null>(null);
+  const [showAutoReminder, setShowAutoReminder] = useState(true);
+  const [paymentSuccessMsg, setPaymentSuccessMsg] = useState<string | null>(null);
+
+  const currentViewingMember = viewingMember ? (members.find(m => m.id === viewingMember.id) || viewingMember) : null;
 
   useEffect(() => {
     const idParam = searchParams.get("id");
@@ -72,6 +82,7 @@ export default function Members() {
   const [formData, setFormData] = useState<Partial<Member>>({});
   const [formError, setFormError] = useState("");
   const [notification, setNotification] = useState("");
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const openAddModal = () => {
     setFormError("");
@@ -82,7 +93,8 @@ export default function Members() {
       address: "",
       plan: "Daily",
       joinDate: new Date().toISOString().split("T")[0],
-      dailyAmount: "",
+      planUnits: 1,
+      dailyAmount: "127",
       nomineeName: "",
       nomineePhone: "",
       status: "Active",
@@ -94,7 +106,11 @@ export default function Members() {
 
   const openEditModal = (member: Member) => {
     setFormError("");
-    setFormData({ ...member });
+    setFormData({
+      ...member,
+      planUnits: member.planUnits || Math.round(parseInt(member.dailyAmount || "127", 10) / 127) || 1,
+      dailyAmount: member.dailyAmount || "127"
+    });
     setEditingMember(member);
     setIsModalOpen(true);
   };
@@ -104,17 +120,22 @@ export default function Members() {
   };
 
   const handleDelete = (id: string) => {
-    if (user?.role === "Employee" || user?.role === "Member") {
+    if (user?.role === "Member") {
       alert("You do not have permission to delete members.");
       return;
     }
-    if (
-      window.confirm(
-        "Are you sure you want to delete this member? All their collections will also be deleted."
-      )
-    ) {
-      deleteMember(id);
-      showNotification("Member deleted successfully!");
+    setDeleteConfirmId(id);
+  };
+
+  const confirmDelete = () => {
+    if (!deleteConfirmId) return;
+    try {
+      deleteMember(deleteConfirmId);
+      showNotification("Member deleted successfully.");
+      setDeleteConfirmId(null);
+    } catch (error) {
+      console.error("Failed to delete member:", error);
+      alert("Failed to delete member. Please try again.");
     }
   };
 
@@ -192,134 +213,117 @@ export default function Members() {
   });
 
   // For Member role, render the profile directly
-  if (user?.role === "Member" && viewingMember) {
-    const memberCols = collections.filter(c => c.memberId === viewingMember.id);
-    const { totalSavings, totalBonus, registrationRevenue, totalCompanyCommission, totalCompanyProfit } = calculateFinancialSummary(memberCols, [viewingMember], settings);
-    const maturityAmount = totalSavings + totalBonus;
+  if (user?.role === "Member" && currentViewingMember) {
+    const todayDateStr = new Date().toISOString().split("T")[0];
+    const memberDueInfo = getMemberDueInfo(currentViewingMember, collections, todayDateStr);
     
-    const regCollection = memberCols.find(c => c.type === "Registration Fee");
-    const regDate = regCollection ? new Date(regCollection.timestamp).toLocaleDateString() : new Date(viewingMember.joinDate).toLocaleDateString();
-    
-    const planDuration = parseInt(settings.planDuration || "300", 10);
-    const joinDate = new Date(viewingMember.joinDate);
-    const maturityDateObj = new Date(joinDate);
-    maturityDateObj.setDate(maturityDateObj.getDate() + planDuration);
-    
-    const totalDaysPaidObj = memberCols.filter(c => c.type === "Daily Deposit").reduce((acc, curr) => acc + (parseInt(curr.amount || "0", 10) / parseInt(viewingMember.dailyAmount || "1", 10)), 0);
-    const totalDaysPaid = Math.round(totalDaysPaidObj);
-    
-    const remainingDays = Math.max(0, planDuration - totalDaysPaid);
-    const progressPercentage = Math.min(100, Math.round((totalDaysPaid / planDuration) * 100));
+    const activePlans = (currentViewingMember.plans || []).filter(p => p.status === "Active");
+    const totalActivePlans = activePlans.length;
+    const totalDailyAmount = totalActivePlans * 127;
 
-    const totalDeposits = memberCols.filter(c => c.type === "Daily Deposit").reduce((acc, c) => acc + parseInt(c.amount || "0", 10), 0);
-
-    const downloadReceiptPDF = (receipt: any) => {
-      const doc = new jsPDF();
-      doc.setFontSize(20);
-      doc.setTextColor(0, 51, 102);
-      doc.text("SMART SAVE FINANCIAL SYSTEMS", 105, 20, { align: "center" });
-      doc.setFontSize(12);
-      doc.setTextColor(100);
-      doc.text("Daily Collection Receipt", 105, 30, { align: "center" });
-      doc.setLineWidth(0.5);
-      doc.line(20, 35, 190, 35);
-      doc.setFontSize(11);
-      doc.setTextColor(50);
-      doc.text(`Receipt No: ${receipt.receiptNo || receipt.id}`, 20, 50);
-      doc.text(`Date: ${new Date(receipt.timestamp).toLocaleString()}`, 130, 50);
-      doc.text(`Member ID: ${receipt.memberId}`, 20, 60);
-      doc.text(`Member Name: ${receipt.memberName}`, 130, 60);
-      doc.text(`Payment Type: ${receipt.type}`, 20, 70);
-      doc.text(`Status: ${receipt.status}`, 130, 70);
-      doc.setLineWidth(0.5);
-      doc.line(20, 80, 190, 80);
-      doc.setFontSize(14);
-      doc.setTextColor(0, 0, 0);
-      doc.text("Amount Received:", 20, 95);
-      doc.setFontSize(16);
-      doc.setTextColor(0, 153, 51);
-      doc.text(`Rs ${parseInt(receipt.amount, 10).toLocaleString()}`, 130, 95);
-      
-      if (receipt.type === "Registration Fee") {
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`Registration Fee: Rs ${receipt.amount}`, 30, 105);
-      } else {
-        const breakdown = calculateCollectionBreakdown(parseInt(receipt.amount, 10), receipt.type);
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`Savings Fund: Rs ${breakdown.savingsFund}`, 30, 105);
-        doc.text(`Company Commission: Rs ${breakdown.companyCommission}`, 130, 105);
-        doc.text(`Bonus Fund: Rs ${breakdown.bonusFund}`, 30, 115);
-        doc.text(`Company Profit: Rs ${breakdown.companyProfit}`, 130, 115);
-      }
-      doc.setFontSize(10);
-      doc.setTextColor(150);
-      doc.text("Thank you for saving with Smart Save!", 105, 140, { align: "center" });
-      doc.save(`Receipt_${receipt.receiptNo || receipt.id}.pdf`);
-    };
-
-    const generateStatement = () => {
-      const doc = new jsPDF();
-      doc.setFontSize(18);
-      doc.text("Member Statement", 14, 22);
-      doc.setFontSize(11);
-      doc.text(`Member Name: ${viewingMember.name}`, 14, 30);
-      doc.text(`Member ID: ${viewingMember.id}`, 14, 36);
-      doc.text(`Plan Duration: ${planDuration} Days`, 14, 42);
-      
-      autoTable(doc, {
-        startY: 50,
-        head: [["Date", "Receipt No", "Amount", "Type"]],
-        body: memberCols.map(c => [
-          new Date(c.timestamp).toLocaleDateString(),
-          c.receiptNo || c.id,
-          `Rs ${c.amount}`,
-          c.type
-        ])
+    const handleInAppPayment = () => {
+      addCollection({
+        memberId: currentViewingMember.id,
+        memberName: currentViewingMember.name,
+        amount: totalDailyAmount.toString(),
+        type: "Daily Deposit",
+        timestamp: new Date().toISOString(),
+        status: "Completed",
+        notes: "In-App Payment via Auto Reminder"
       });
-      doc.save(`Statement_${viewingMember.id}.pdf`);
+      setShowAutoReminder(false);
     };
 
-    const generateLedger = () => {
-      const doc = new jsPDF();
-      doc.setFontSize(18);
-      doc.text("Member Ledger", 14, 22);
-      doc.setFontSize(11);
-      doc.text(`Name: ${viewingMember.name} | ID: ${viewingMember.id}`, 14, 30);
-      
-      autoTable(doc, {
-        startY: 40,
-        head: [["Date", "Amount", "Savings", "Commission", "Bonus"]],
-        body: memberCols.filter(c => c.type !== "Registration Fee").map(c => {
-          const breakdown = calculateCollectionBreakdown(parseInt(c.amount || "0", 10), c.type);
-          return [
-            new Date(c.timestamp).toLocaleDateString(),
-            `Rs ${c.amount}`,
-            `Rs ${breakdown.savingsFund}`,
-            `Rs ${breakdown.companyCommission}`,
-            `Rs ${breakdown.bonusFund}`,
-          ];
-        })
-      });
-      doc.save(`Ledger_${viewingMember.id}.pdf`);
-    };
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">My Member Portal</h1>
+          <p className="text-slate-500 text-sm mt-1">
+            Welcome back, <span className="font-bold text-[#003366]">{currentViewingMember.name}</span>. Review your plans, savings ledger, and performance details.
+          </p>
+        </div>
 
-    const generateMaturityReport = () => {
-      const doc = new jsPDF();
-      doc.setFontSize(18);
-      doc.text("Maturity Report", 14, 22);
-      doc.setFontSize(12);
-      doc.text(`Name: ${viewingMember.name}`, 14, 35);
-      doc.text(`ID: ${viewingMember.id}`, 14, 43);
-      doc.text(`Total Deposits: Rs ${totalDeposits}`, 14, 51);
-      doc.text(`Total Savings: Rs ${totalSavings}`, 14, 59);
-      doc.text(`Total Bonus: Rs ${totalBonus}`, 14, 67);
-      doc.text(`Estimated Maturity Amount: Rs ${maturityAmount}`, 14, 75);
-      doc.text(`Maturity Date: ${maturityDateObj.toLocaleDateString()}`, 14, 83);
-      doc.text(`Remaining Days: ${remainingDays}`, 14, 91);
-      doc.save(`Maturity_${viewingMember.id}.pdf`);
-    };
+        <MemberProfileView member={currentViewingMember} />
+
+        {/* Automatic App Reminder Popup Modal */}
+        {showAutoReminder && !memberDueInfo.paidToday && totalDailyAmount > 0 && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+              <div className="bg-amber-500 p-6 text-white text-center flex flex-col items-center">
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-3">
+                  <AlertCircle className="w-7 h-7 text-white animate-bounce" />
+                </div>
+                <h3 className="font-bold text-lg">Daily Payment Pending</h3>
+                <p className="text-amber-100 text-xs mt-1">SMART SAVE App Reminder</p>
+              </div>
+              
+              <div className="p-6">
+                <p className="text-slate-600 text-sm leading-relaxed text-center font-medium">
+                  Dear <span className="font-bold text-slate-800">{currentViewingMember.name}</span>, your daily installment payment is pending for today. Please complete your payment to keep your savings plan active.
+                </p>
+                
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mt-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Amount Due Today</p>
+                    <p className="text-2xl font-extrabold text-slate-800 mt-0.5">₹{totalDailyAmount}</p>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+                    {totalActivePlans} Active Plan{totalActivePlans > 1 ? "s" : ""}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-6">
+                  <button
+                    onClick={() => setShowAutoReminder(false)}
+                    className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer border border-slate-200"
+                  >
+                    Pay Later
+                  </button>
+                  <button
+                    onClick={handleInAppPayment}
+                    className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    Pay Now
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // DEAD_BRANCH_OLD_LAYOUT
+  if (false && user && currentViewingMember) {
+    const viewingMember = currentViewingMember;
+    const memberCols = collections;
+    const totalDaysPaid = 180;
+    const planDuration = 180;
+    const remainingDays = 0;
+    const progressPercentage = 100;
+    const totalDeposits = 0;
+    const registrationRevenue = 0;
+    const totalSavings = 0;
+    const totalBonus = 0;
+    const maturityAmount = 0;
+    const paidYesterday = true;
+    const paymentSuccessMsg = "";
+    const downloadReceiptPDF = (receipt: any) => {};
+    const generateStatement = () => {};
+    const generateLedger = () => {};
+    const generateMaturityReport = () => {};
+
+    const memberDueInfo = { status: "", paidToday: false, dueAmount: 0, fineAmount: 0, lastPaymentDate: "" };
+    const totalDailyAmount = 0;
+    const totalActivePlans = 0;
+    const handleInAppPayment = () => {};
+    const regDate = "";
+    const joinDate = new Date();
+    const maturityDateObj = new Date();
+    const isMatured = false;
+    const maturityStatus = "";
+    const plans: any[] = [];
 
     return (
       <div className="space-y-6 max-w-5xl mx-auto">
@@ -336,6 +340,14 @@ export default function Members() {
             <button onClick={generateMaturityReport} className="px-3 py-1.5 text-sm font-medium text-[#003366] bg-blue-50 hover:bg-blue-100 rounded-lg flex items-center gap-1"><Download className="w-4 h-4"/> Maturity</button>
           </div>
         </div>
+
+        {/* Payment Success Alert */}
+        {paymentSuccessMsg && (
+          <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl flex items-center gap-3 shadow-sm text-sm">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span className="font-semibold">{paymentSuccessMsg}</span>
+          </div>
+        )}
 
         {/* Progress Bar */}
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
@@ -354,6 +366,73 @@ export default function Members() {
           </div>
         </div>
 
+        {/* Payment & Dues Center Card */}
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <h3 className="font-bold text-slate-800 mb-4 border-b pb-2 flex items-center justify-between">
+            <span className="text-sm tracking-wide uppercase text-slate-500">Payment & Dues Center</span>
+            <span className={`px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1 ${
+              memberDueInfo.status === "Paid" ? "bg-emerald-100 text-emerald-800" :
+              memberDueInfo.status === "Due Today" ? "bg-amber-100 text-amber-800" :
+              "bg-rose-100 text-rose-800"
+            }`}>
+              Status: {memberDueInfo.status}
+            </span>
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">Today's Payment</p>
+              <div className="flex items-center gap-2 mt-1.5">
+                {memberDueInfo.paidToday ? (
+                  <span className="text-emerald-600 font-bold inline-flex items-center gap-1 text-sm"><CheckCircle2 className="w-4 h-4 shrink-0" /> Paid</span>
+                ) : (
+                  <span className="text-amber-600 font-bold inline-flex items-center gap-1 text-sm">Pending</span>
+                )}
+              </div>
+            </div>
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">Yesterday's Payment</p>
+              <div className="flex items-center gap-2 mt-1.5">
+                {paidYesterday ? (
+                  <span className="text-emerald-600 font-bold inline-flex items-center gap-1 text-sm"><CheckCircle2 className="w-4 h-4 shrink-0" /> Paid</span>
+                ) : (
+                  <span className="text-rose-600 font-bold inline-flex items-center gap-1 text-sm">Pending</span>
+                )}
+              </div>
+            </div>
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">Total Due</p>
+              <p className="text-lg font-extrabold font-mono mt-1 text-rose-600">
+                ₹{memberDueInfo.dueAmount}
+              </p>
+              {memberDueInfo.fineAmount > 0 && (
+                <p className="text-[10px] text-rose-500 font-bold mt-1 uppercase">Includes ₹{memberDueInfo.fineAmount} Fine</p>
+              )}
+            </div>
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">Last Paid Date</p>
+              <p className="text-xs font-bold mt-2.5 text-slate-700">
+                {memberDueInfo.lastPaymentDate}
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Pay Button */}
+          {!memberDueInfo.paidToday && totalDailyAmount > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mt-4">
+              <div>
+                <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">Payment Due</p>
+                <p className="text-sm font-semibold text-amber-700 mt-1">Amount: ₹{totalDailyAmount} ({totalActivePlans} Active Plan{totalActivePlans > 1 ? "s" : ""})</p>
+              </div>
+              <button 
+                onClick={handleInAppPayment}
+                className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                Pay Now (₹{totalDailyAmount})
+              </button>
+            </div>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
             <h3 className="font-bold text-slate-800 mb-4 border-b pb-2">Personal Details</h3>
@@ -363,12 +442,22 @@ export default function Members() {
                 <p className="font-medium text-slate-800">{viewingMember.id}</p>
               </div>
               <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wider">Member Name</p>
+                <p className="font-medium text-slate-800">{viewingMember.name}</p>
+              </div>
+              <div>
                 <p className="text-xs text-slate-500 uppercase tracking-wider">Mobile Number</p>
                 <p className="font-medium text-slate-800">+91 {viewingMember.phone}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-500 uppercase tracking-wider">Aadhaar Number</p>
                 <p className="font-medium text-slate-800">{viewingMember.aadhaar}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wider">Registration Status</p>
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium inline-flex items-center mt-0.5 bg-emerald-100 text-emerald-700">
+                  {viewingMember.registrationStatus || "Verified"}
+                </span>
               </div>
               <div>
                 <p className="text-xs text-slate-500 uppercase tracking-wider">Address</p>
@@ -389,6 +478,14 @@ export default function Members() {
             <h3 className="font-bold text-slate-800 mb-4 border-b pb-2">Plan Details</h3>
             <div className="grid grid-cols-2 gap-y-4 gap-x-2">
               <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wider">Total Active Plans</p>
+                <p className="font-semibold text-[#003366]">{totalActivePlans}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wider">Total Daily Amount</p>
+                <p className="font-semibold text-[#003366]">₹{totalDailyAmount}</p>
+              </div>
+              <div>
                 <p className="text-xs text-slate-500 uppercase tracking-wider">Daily Deposit</p>
                 <p className="font-medium text-slate-800">₹{viewingMember.dailyAmount}</p>
               </div>
@@ -405,12 +502,40 @@ export default function Members() {
                 <p className="font-medium text-emerald-600">{maturityDateObj.toLocaleDateString()}</p>
               </div>
               <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wider">Maturity Status</p>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-bold inline-flex items-center mt-0.5 ${isMatured ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                  {maturityStatus}
+                </span>
+              </div>
+              <div>
                 <p className="text-xs text-slate-500 uppercase tracking-wider">Status</p>
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium inline-flex items-center mt-0.5 ${viewingMember.status === "Active" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-700"}`}>
                   {viewingMember.status}
                 </span>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <h3 className="font-bold text-slate-800 mb-4 border-b pb-2">My Plans</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {plans.map((p) => (
+              <div key={p.id} className="p-4 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">{p.id}</p>
+                  <p className="text-xs text-slate-500 mt-1">Daily Deposit: <span className="font-semibold">₹{p.dailyAmount}</span></p>
+                  <p className="text-xs text-slate-400 mt-0.5">Started: {new Date(p.startDate).toLocaleDateString()}</p>
+                </div>
+                <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                  p.status === "Active" ? "bg-emerald-100 text-emerald-700" :
+                  p.status === "Paused" ? "bg-amber-100 text-amber-700" :
+                  "bg-slate-200 text-slate-700"
+                }`}>
+                  {p.status}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -488,6 +613,53 @@ export default function Members() {
             </table>
           </div>
         </div>
+
+        {/* Automatic App Reminder Popup Modal */}
+        {showAutoReminder && !memberDueInfo.paidToday && totalDailyAmount > 0 && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+              {/* Top Warning Banner */}
+              <div className="bg-amber-500 p-6 text-white text-center flex flex-col items-center">
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-3">
+                  <AlertCircle className="w-7 h-7 text-white animate-bounce" />
+                </div>
+                <h3 className="font-bold text-lg">Daily Payment Pending</h3>
+                <p className="text-amber-100 text-xs mt-1">SMART SAVE App Reminder</p>
+              </div>
+              
+              <div className="p-6">
+                <p className="text-slate-600 text-sm leading-relaxed text-center font-medium">
+                  Dear <span className="font-bold text-slate-800">{viewingMember.name}</span>, your daily installment payment is pending for today. Please complete your payment to keep your savings plan active.
+                </p>
+                
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mt-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Amount Due Today</p>
+                    <p className="text-2xl font-extrabold text-slate-800 mt-0.5">₹{totalDailyAmount}</p>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+                    {totalActivePlans} Active Plan{totalActivePlans > 1 ? "s" : ""}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-6">
+                  <button
+                    onClick={() => setShowAutoReminder(false)}
+                    className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer border border-slate-200"
+                  >
+                    Pay Later
+                  </button>
+                  <button
+                    onClick={handleInAppPayment}
+                    className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    Pay Now
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -606,17 +778,30 @@ export default function Members() {
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 text-[#003366] font-bold flex items-center justify-center">
-                          {member.name
-                            ? member.name.charAt(0).toUpperCase()
-                            : "?"}
+                        <div className="w-10 h-10 rounded-full bg-blue-100 text-[#003366] font-bold flex items-center justify-center overflow-hidden shrink-0 border border-slate-200">
+                          {member.photo ? (
+                            <img 
+                              src={member.photo} 
+                              alt={member.name} 
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : member.name ? (
+                            member.name.charAt(0).toUpperCase()
+                          ) : (
+                            "?"
+                          )}
                         </div>
                         <div>
                           <div className="font-semibold text-slate-800">
                             {member.name}
                           </div>
-                          <div className="text-xs text-slate-500">
-                            {member.id}
+                          <div className="text-xs text-slate-500 flex items-center gap-1.5">
+                            <span>ID: {member.id}</span>
+                            <span className="text-slate-300">|</span>
+                            <span className="bg-blue-50 text-blue-700 px-1 py-0.2 rounded text-[10px] font-medium font-mono">
+                              {member.plans ? member.plans.filter((p: any) => p.status === "Active").length : 1} Plan(s) (₹{member.dailyAmount}/day)
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -666,7 +851,7 @@ export default function Members() {
                         >
                           <Edit className="w-4 h-4" />
                         </button>
-                        {(user?.role === "Super Admin" || user?.role === "Administrator") && (
+                        {(user?.role === "Super Admin" || user?.role === "Administrator" || user?.role === "Employee") && (
                           <button
                             onClick={(e) => { e.stopPropagation(); handleDelete(member.id); }}
                             className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
@@ -754,6 +939,65 @@ export default function Members() {
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="md:col-span-2">
+                  <div className="flex flex-col md:flex-row items-center gap-4 border border-slate-100 p-3 rounded-lg bg-slate-50/50">
+                    <div className="relative shrink-0">
+                      <div className="w-20 h-20 rounded-full border border-slate-200 overflow-hidden bg-white flex items-center justify-center shadow-xs">
+                        {formData.photo ? (
+                          <img 
+                            src={formData.photo} 
+                            alt="Member Photo Preview" 
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <UserIcon className="w-8 h-8 text-slate-300" />
+                        )}
+                      </div>
+                      <label className="absolute -bottom-1 -right-1 bg-[#003366] text-white p-1.5 rounded-full cursor-pointer hover:bg-blue-800 transition-colors shadow-xs">
+                        <Camera className="w-3.5 h-3.5" />
+                        <input 
+                          type="file" 
+                          accept="image/jpeg,image/png,image/webp" 
+                          className="hidden" 
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              if (file.size > 2 * 1024 * 1024) {
+                                alert("Maximum size allowed is 2 MB.");
+                                return;
+                              }
+                              const validFormats = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+                              if (!validFormats.includes(file.type)) {
+                                alert("Supported formats: JPG, PNG, WEBP.");
+                                return;
+                              }
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setFormData({ ...formData, photo: reader.result as string });
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                    <div className="text-center md:text-left">
+                      <p className="text-xs font-bold text-slate-700">Profile Photo (Optional)</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">JPG, PNG or WEBP. Max 2 MB.</p>
+                      {formData.photo && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, photo: "" })}
+                          className="text-[10px] font-bold text-red-600 hover:text-red-800 mt-1.5 transition-colors flex items-center gap-1 mx-auto md:mx-0"
+                        >
+                          <Trash2 className="w-3 px-0 py-0" /> Remove Photo
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
                     Member ID <span className="text-red-500">*</span>
@@ -836,35 +1080,53 @@ export default function Members() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Plan
+                    Plan Name
                   </label>
                   <select
                     value={formData.plan || "Daily"}
-                    onChange={(e) =>
-                      setFormData({ ...formData, plan: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-[#003366] focus:border-[#003366]"
+                    disabled
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-500 cursor-not-allowed"
                   >
-                    <option value="Daily">Daily</option>
-                    <option value="Weekly">Weekly</option>
-                    <option value="Monthly">Monthly</option>
+                    <option value="Daily">Basic Daily Plan</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Daily/Plan Amount (₹){" "}
-                    <span className="text-red-500">*</span>
+                    Plan Units
+                  </label>
+                  <select
+                    value={formData.planUnits || 1}
+                    onChange={(e) => {
+                      const units = parseInt(e.target.value, 10);
+                      setFormData({
+                        ...formData,
+                        planUnits: units,
+                        dailyAmount: (units * 127).toString()
+                      });
+                    }}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-[#003366] focus:border-[#003366]"
+                  >
+                    <option value="1">1 Unit (₹127/day)</option>
+                    <option value="2">2 Units (₹254/day)</option>
+                    <option value="3">3 Units (₹381/day)</option>
+                    <option value="4">4 Units (₹508/day)</option>
+                    <option value="5">5 Units (₹635/day)</option>
+                    <option value="10">10 Units (₹1270/day)</option>
+                    <option value="15">15 Units (₹1905/day)</option>
+                    <option value="20">20 Units (₹2540/day)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Daily/Plan Amount (₹) <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"
                     required
-                    min="1"
-                    value={formData.dailyAmount || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, dailyAmount: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-[#003366] focus:border-[#003366]"
-                    placeholder="0.00"
+                    readOnly
+                    value={formData.dailyAmount || "127"}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-500 cursor-not-allowed"
+                    placeholder="127"
                   />
                 </div>
                 <div>
@@ -952,11 +1214,25 @@ export default function Members() {
       )}
 
       {/* Member Profile Modal */}
-      {viewingMember && (() => {
+      {currentViewingMember && (() => {
+        const viewingMember = currentViewingMember;
         const memberCols = collections.filter(c => c.memberId === viewingMember.id);
         const { totalSavings, totalBonus, registrationRevenue, totalCompanyCommission, totalCompanyProfit } = calculateFinancialSummary(memberCols, [viewingMember], settings);
         const maturityAmount = totalSavings + totalBonus;
+        const modalDueInfo = getMemberDueInfo(viewingMember, collections);
         
+        const plans = viewingMember.plans || [
+          {
+            id: `${viewingMember.id}-PLAN-1`,
+            dailyAmount: parseInt(viewingMember.dailyAmount || "127", 10),
+            status: viewingMember.status === "Active" ? "Active" : "Closed",
+            startDate: viewingMember.joinDate
+          }
+        ];
+        const activePlans = plans.filter(p => p.status === "Active");
+        const totalActivePlans = activePlans.length;
+        const totalDailyAmount = activePlans.reduce((sum, p) => sum + p.dailyAmount, 0);
+
         const regCollection = memberCols.find(c => c.type === "Registration Fee");
         const regDate = regCollection ? new Date(regCollection.timestamp).toLocaleDateString() : new Date(viewingMember.joinDate).toLocaleDateString();
         const regReceipt = regCollection ? (regCollection.receiptNo || regCollection.id) : "N/A";
@@ -965,7 +1241,9 @@ export default function Members() {
         const planDuration = 180;
         const joinDate = new Date(viewingMember.joinDate);
         const maturityDateObj = new Date(joinDate);
-        maturityDateObj.setDate(maturityDateObj.getDate() + planDuration);
+        maturityDateObj.setFullYear(maturityDateObj.getFullYear() + 3);
+        const isMatured = new Date() >= maturityDateObj;
+        const maturityStatus = isMatured ? "Matured" : "Accumulating";
         
         const today = new Date();
         const daysPassedObj = Math.floor((today.getTime() - joinDate.getTime()) / (1000 * 3600 * 24));
@@ -978,53 +1256,11 @@ export default function Members() {
         const totalDeposits = memberCols.filter(c => c.type === "Daily Deposit").reduce((acc, c) => acc + parseInt(c.amount || "0", 10), 0);
 
         const printReceipt = (receipt: any) => {
-           window.print(); // Simple fallback if they just want a standard print dialog for the screen, but we should generate PDF
+           window.print();
         };
 
         const downloadReceiptPDF = (receipt: any) => {
-          const doc = new jsPDF();
-          doc.setFontSize(20);
-          doc.setTextColor(0, 51, 102);
-          doc.text("SMART SAVE FINANCIAL SYSTEMS", 105, 20, { align: "center" });
-          doc.setFontSize(12);
-          doc.setTextColor(100);
-          doc.text("Daily Collection Receipt", 105, 30, { align: "center" });
-          doc.setLineWidth(0.5);
-          doc.line(20, 35, 190, 35);
-          doc.setFontSize(11);
-          doc.setTextColor(50);
-          doc.text(`Receipt No: ${receipt.receiptNo || receipt.id}`, 20, 50);
-          doc.text(`Date: ${new Date(receipt.timestamp).toLocaleString()}`, 130, 50);
-          doc.text(`Member ID: ${receipt.memberId}`, 20, 60);
-          doc.text(`Member Name: ${receipt.memberName}`, 130, 60);
-          doc.text(`Payment Type: ${receipt.type}`, 20, 70);
-          doc.text(`Status: ${receipt.status}`, 130, 70);
-          doc.setLineWidth(0.5);
-          doc.line(20, 80, 190, 80);
-          doc.setFontSize(14);
-          doc.setTextColor(0, 0, 0);
-          doc.text("Amount Received:", 20, 95);
-          doc.setFontSize(16);
-          doc.setTextColor(0, 153, 51);
-          doc.text(`Rs ${parseInt(receipt.amount, 10).toLocaleString()}`, 130, 95);
-          
-          if (receipt.type === "Registration Fee") {
-            doc.setFontSize(10);
-            doc.setTextColor(100);
-            doc.text(`Registration Fee: Rs ${receipt.amount}`, 30, 105);
-          } else {
-            const breakdown = calculateCollectionBreakdown(parseInt(receipt.amount, 10), receipt.type);
-            doc.setFontSize(10);
-            doc.setTextColor(100);
-            doc.text(`Savings Fund: Rs ${breakdown.savingsFund}`, 30, 105);
-            doc.text(`Company Commission: Rs ${breakdown.companyCommission}`, 130, 105);
-            doc.text(`Bonus Fund: Rs ${breakdown.bonusFund}`, 30, 115);
-            doc.text(`Company Profit: Rs ${breakdown.companyProfit}`, 130, 115);
-          }
-          doc.setFontSize(10);
-          doc.setTextColor(150);
-          doc.text("Thank you for saving with Smart Save!", 105, 140, { align: "center" });
-          doc.save(`Receipt_${receipt.receiptNo || receipt.id}.pdf`);
+          downloadReceiptPDFUtil(receipt, settings, "download");
         };
 
         const generateStatement = () => {
@@ -1140,12 +1376,22 @@ export default function Members() {
                             <p className="font-medium text-slate-800">{viewingMember.id}</p>
                           </div>
                           <div>
+                            <p className="text-xs text-slate-500 uppercase tracking-wider">Member Name</p>
+                            <p className="font-medium text-slate-800">{viewingMember.name}</p>
+                          </div>
+                          <div>
                             <p className="text-xs text-slate-500 uppercase tracking-wider">Mobile Number</p>
                             <p className="font-medium text-slate-800">+91 {viewingMember.phone}</p>
                           </div>
                           <div>
                             <p className="text-xs text-slate-500 uppercase tracking-wider">Aadhaar Number</p>
                             <p className="font-medium text-slate-800">{viewingMember.aadhaar}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500 uppercase tracking-wider">Registration Status</p>
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium inline-flex items-center mt-0.5 bg-emerald-100 text-emerald-700">
+                              {viewingMember.registrationStatus || "Verified"}
+                            </span>
                           </div>
                           <div>
                             <p className="text-xs text-slate-500 uppercase tracking-wider">Address</p>
@@ -1165,6 +1411,14 @@ export default function Members() {
                       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                         <h3 className="font-bold text-slate-800 mb-4 border-b pb-2">Plan Details</h3>
                         <div className="grid grid-cols-2 gap-y-4 gap-x-2">
+                          <div>
+                            <p className="text-xs text-slate-500 uppercase tracking-wider">Total Active Plans</p>
+                            <p className="font-semibold text-[#003366]">{totalActivePlans}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500 uppercase tracking-wider">Total Daily Amount</p>
+                            <p className="font-semibold text-[#003366]">₹{totalDailyAmount}</p>
+                          </div>
                           <div>
                             <p className="text-xs text-slate-500 uppercase tracking-wider">Plan Amount</p>
                             <p className="font-medium text-slate-800">₹22,860</p>
@@ -1186,11 +1440,104 @@ export default function Members() {
                             <p className="font-medium text-emerald-600">{maturityDateObj.toLocaleDateString()}</p>
                           </div>
                           <div>
+                            <p className="text-xs text-slate-500 uppercase tracking-wider">Maturity Status</p>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold inline-flex items-center mt-0.5 ${isMatured ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                              {maturityStatus}
+                            </span>
+                          </div>
+                          <div>
                             <p className="text-xs text-slate-500 uppercase tracking-wider">Status</p>
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium inline-flex items-center mt-0.5 ${viewingMember.status === "Active" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-700"}`}>
                               {viewingMember.status}
                             </span>
                           </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div className="flex justify-between items-center mb-4 border-b pb-2">
+                          <h3 className="font-bold text-slate-800">Active Plans & Management</h3>
+                          {(user?.role === "Super Admin" || user?.role === "Administrator") && (
+                            <button
+                              onClick={() => {
+                                if (window.confirm("Are you sure you want to purchase a new ₹127 Plan for this member?")) {
+                                  addMemberPlan(viewingMember.id, 127);
+                                  showNotification("New ₹127 Plan added successfully!");
+                                }
+                              }}
+                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-md shadow-sm transition-colors"
+                            >
+                              + Add ₹127 Plan
+                            </button>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-3">
+                          {plans.map((p) => (
+                            <div key={p.id} className="p-3 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-semibold text-slate-800">{p.id}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-xs text-slate-500 font-mono">Daily: ₹{p.dailyAmount}</span>
+                                  <span className="text-xs text-slate-400">|</span>
+                                  <span className="text-xs text-slate-500">Since: {new Date(p.startDate).toLocaleDateString()}</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  p.status === "Active" ? "bg-emerald-100 text-emerald-700" :
+                                  p.status === "Paused" ? "bg-amber-100 text-amber-700" :
+                                  "bg-slate-200 text-slate-700"
+                                }`}>
+                                  {p.status}
+                                </span>
+                                
+                                {(user?.role === "Super Admin" || user?.role === "Administrator") && p.status !== "Closed" && (
+                                  <div className="flex gap-1">
+                                    {p.status === "Active" ? (
+                                      <button
+                                        onClick={() => {
+                                          if (window.confirm(`Are you sure you want to pause plan ${p.id}?`)) {
+                                            updateMemberPlanStatus(viewingMember.id, p.id, "Paused");
+                                            showNotification(`Plan ${p.id} paused successfully!`);
+                                          }
+                                        }}
+                                        className="px-1.5 py-0.5 text-[10px] font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 rounded border border-amber-200"
+                                        title="Pause Plan"
+                                      >
+                                        Pause
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => {
+                                          if (window.confirm(`Are you sure you want to resume plan ${p.id}?`)) {
+                                            updateMemberPlanStatus(viewingMember.id, p.id, "Active");
+                                            showNotification(`Plan ${p.id} resumed successfully!`);
+                                          }
+                                        }}
+                                        className="px-1.5 py-0.5 text-[10px] font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded border border-emerald-200"
+                                        title="Resume Plan"
+                                      >
+                                        Resume
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => {
+                                        if (window.confirm(`Are you sure you want to CLOSE plan ${p.id}? This cannot be undone.`)) {
+                                          updateMemberPlanStatus(viewingMember.id, p.id, "Closed");
+                                          showNotification(`Plan ${p.id} closed successfully!`);
+                                        }
+                                      }}
+                                      className="px-1.5 py-0.5 text-[10px] font-medium bg-rose-50 text-rose-700 hover:bg-rose-100 rounded border border-rose-200"
+                                      title="Close Plan"
+                                    >
+                                      Close
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                    </div>
@@ -1215,6 +1562,16 @@ export default function Members() {
                             <p className="text-xs text-slate-500 uppercase tracking-wider">Registration Fee</p>
                             <p className="font-semibold text-slate-800">₹{registrationRevenue}</p>
                           </div>
+                          <div>
+                            <p className="text-xs text-slate-500 uppercase tracking-wider">Total Due Amount</p>
+                            <p className="font-semibold text-rose-600">₹{modalDueInfo.dueAmount}</p>
+                          </div>
+                          {modalDueInfo.fineAmount > 0 && (
+                            <div>
+                              <p className="text-xs text-red-500 uppercase tracking-wider font-bold">Unpaid Fine</p>
+                              <p className="font-semibold text-red-600">₹{modalDueInfo.fineAmount}</p>
+                            </div>
+                          )}
                           <div className="col-span-2 grid grid-cols-4 gap-2 mt-2 pt-3 border-t border-slate-100">
                             <div>
                               <p className="text-xs text-slate-500 uppercase tracking-wider">Total Savings</p>
@@ -1310,6 +1667,44 @@ export default function Members() {
         </div>
         );
       })()}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl max-w-md w-full shadow-xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <div className="flex items-center gap-4 text-red-600 mb-4">
+                <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                  <Trash2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Delete Member</h3>
+                  <p className="text-sm text-slate-500">Permanently remove this member profile.</p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+                Are you sure you want to delete this member?
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmId(null)}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -24,6 +24,7 @@ import {
   Percent,
   History,
   Check,
+  Camera,
 } from "lucide-react";
 import { useData } from "../context/DataContext";
 import { Employee } from "../types";
@@ -47,10 +48,10 @@ export default function EmployeeManagement() {
   } = useData();
 
   // Search and Filter State
-  const [searchName, setSearchName] = useState("");
-  const [searchId, setSearchId] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [filterBranch, setFilterBranch] = useState("All Branches");
   const [filterStatus, setFilterStatus] = useState("All Status");
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Modals
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -75,6 +76,7 @@ export default function EmployeeManagement() {
     registrationCommission: "",
     joinDate: new Date().toISOString().split("T")[0],
     status: "Active" as "Active" | "Inactive",
+    photo: "",
   });
 
   const [notification, setNotification] = useState("");
@@ -87,21 +89,33 @@ export default function EmployeeManagement() {
   // Extract unique branches
   const branches = useMemo(() => {
     const unique = new Set(employees.map((e) => e.branch).filter(Boolean));
+    unique.add("Online Branch");
+    unique.add("Offline Branch");
     return ["All Branches", ...Array.from(unique)];
   }, [employees]);
 
   // Filter Employees
   const filteredEmployees = useMemo(() => {
     return employees.filter((emp) => {
-      const matchName = emp.name.toLowerCase().includes(searchName.toLowerCase());
-      const matchId = emp.id.toLowerCase().includes(searchId.toLowerCase());
+      const query = searchQuery.trim().toLowerCase();
+      const matchSearch =
+        !query ||
+        emp.id.toLowerCase().includes(query) ||
+        emp.name.toLowerCase().includes(query) ||
+        emp.phone.toLowerCase().includes(query);
+
       const matchBranch =
-        filterBranch === "All Branches" || emp.branch === filterBranch;
+        filterBranch === "All Branches" ||
+        emp.branch === filterBranch ||
+        (filterBranch === "Online Branch" && (emp.branch === "Online" || emp.branch === "Online Branch")) ||
+        (filterBranch === "Offline Branch" && (emp.branch === "Offline" || emp.branch === "Offline Branch"));
+
       const matchStatus =
         filterStatus === "All Status" || emp.status === filterStatus;
-      return matchName && matchId && matchBranch && matchStatus;
+
+      return matchSearch && matchBranch && matchStatus;
     });
-  }, [employees, searchName, searchId, filterBranch, filterStatus]);
+  }, [employees, searchQuery, filterBranch, filterStatus]);
 
   // Open Form for Adding
   const openAddModal = () => {
@@ -122,6 +136,7 @@ export default function EmployeeManagement() {
       registrationCommission: "",
       joinDate: new Date().toISOString().split("T")[0],
       status: "Active",
+      photo: "",
     });
     setIsFormModalOpen(true);
   };
@@ -145,6 +160,7 @@ export default function EmployeeManagement() {
       registrationCommission: emp.registrationCommission || "",
       joinDate: emp.joinDate,
       status: emp.status,
+      photo: emp.photo || "",
     });
     setIsFormModalOpen(true);
   };
@@ -160,21 +176,32 @@ export default function EmployeeManagement() {
 
     if (editingEmployee) {
       updateEmployee(editingEmployee.id, formData);
-      showNotification(`Employee ${editingEmployee.id} updated successfully`);
+      showNotification("Employee updated successfully.");
     } else {
       addEmployee(formData);
-      showNotification(`New Employee created successfully`);
+      showNotification("Employee added successfully.");
     }
     setIsFormModalOpen(false);
   };
 
-  // Delete Employee
+  // Delete Employee trigger
   const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this employee?")) {
-      deleteEmployee(id);
-      showNotification(`Employee ${id} deleted`);
-      if (viewingEmployee?.id === id) {
-        setViewingEmployee(null);
+    setDeleteConfirmId(id);
+  };
+
+  // Confirm and Execute Delete Employee
+  const confirmDelete = () => {
+    if (deleteConfirmId) {
+      try {
+        deleteEmployee(deleteConfirmId);
+        showNotification("Employee deleted successfully.");
+        if (viewingEmployee?.id === deleteConfirmId) {
+          setViewingEmployee(null);
+        }
+        setDeleteConfirmId(null);
+      } catch (error) {
+        console.error("Failed to delete employee:", error);
+        alert("Failed to delete employee. Please try again.");
       }
     }
   };
@@ -298,6 +325,16 @@ export default function EmployeeManagement() {
   const exportProfilePDF = (emp: Employee) => {
     const metrics = getEmployeeMetrics(emp.id);
     const doc = new jsPDF();
+    
+    // Add photo to PDF top right if exists
+    if (emp.photo) {
+      try {
+        doc.addImage(emp.photo, "JPEG", 165, 8, 30, 30);
+      } catch (e) {
+        console.error("Error adding photo to PDF", e);
+      }
+    }
+
     doc.setFontSize(16);
     doc.text(`Employee Profile - ${emp.name} (${emp.id})`, 14, 20);
     
@@ -464,26 +501,24 @@ export default function EmployeeManagement() {
 
       {/* Search and Filter Bar (only shown on List View) */}
       {!viewingEmployee && (
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4 print:hidden">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4 print:hidden">
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
             <input
               type="text"
-              placeholder="Search Employee Name..."
-              value={searchName}
-              onChange={(e) => setSearchName(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
+              placeholder="Search Name, ID or Mobile Number..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
             />
-          </div>
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
-            <input
-              type="text"
-              placeholder="Search Employee ID (e.g. EMP001)..."
-              value={searchId}
-              onChange={(e) => setSearchId(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
-            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
           <div>
             <select
@@ -504,7 +539,7 @@ export default function EmployeeManagement() {
               onChange={(e) => setFilterStatus(e.target.value)}
               className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
             >
-              <option value="All Status">All Status</option>
+              <option value="All Status">All Employees</option>
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
@@ -552,7 +587,21 @@ export default function EmployeeManagement() {
                             {emp.id}
                           </td>
                           <td className="px-4 py-3.5 align-middle font-semibold text-slate-900">
-                            {emp.name}
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-full border border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center font-bold text-slate-600 text-xs shrink-0">
+                                {emp.photo ? (
+                                  <img 
+                                    src={emp.photo} 
+                                    alt={emp.name} 
+                                    className="w-full h-full object-cover"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                ) : (
+                                  emp.name.charAt(0).toUpperCase()
+                                )}
+                              </div>
+                              <span>{emp.name}</span>
+                            </div>
                           </td>
                           <td className="px-4 py-3.5 align-middle text-slate-600">
                             {emp.phone}
@@ -637,8 +686,17 @@ export default function EmployeeManagement() {
             {/* Profile Header */}
             <div className="p-6 bg-slate-900 text-white flex justify-between items-start">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-xl text-white shadow-md">
-                  {viewingEmployee.name.charAt(0).toUpperCase()}
+                <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-xl text-white shadow-md overflow-hidden shrink-0">
+                  {viewingEmployee.photo ? (
+                    <img 
+                      src={viewingEmployee.photo} 
+                      alt={viewingEmployee.name} 
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    viewingEmployee.name.charAt(0).toUpperCase()
+                  )}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -913,6 +971,65 @@ export default function EmployeeManagement() {
                   1. Profile Details
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <div className="flex flex-col md:flex-row items-center gap-4 border border-slate-100 p-3 rounded-lg bg-slate-50/50">
+                      <div className="relative shrink-0">
+                        <div className="w-20 h-20 rounded-full border border-slate-200 overflow-hidden bg-white flex items-center justify-center shadow-xs">
+                          {formData.photo ? (
+                            <img 
+                              src={formData.photo} 
+                              alt="Employee Photo Preview" 
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <User className="w-8 h-8 text-slate-300" />
+                          )}
+                        </div>
+                        <label className="absolute -bottom-1 -right-1 bg-[#003366] text-white p-1.5 rounded-full cursor-pointer hover:bg-blue-800 transition-colors shadow-xs">
+                          <Camera className="w-3.5 h-3.5" />
+                          <input 
+                            type="file" 
+                            accept="image/jpeg,image/png,image/webp" 
+                            className="hidden" 
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                if (file.size > 2 * 1024 * 1024) {
+                                  alert("Maximum size allowed is 2 MB.");
+                                  return;
+                                }
+                                const validFormats = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+                                if (!validFormats.includes(file.type)) {
+                                  alert("Supported formats: JPG, PNG, WEBP.");
+                                  return;
+                                }
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  setFormData({ ...formData, photo: reader.result as string });
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <div className="text-center md:text-left">
+                        <p className="text-xs font-bold text-slate-700">Profile Photo (Optional)</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">JPG, PNG or WEBP. Max 2 MB.</p>
+                        {formData.photo && (
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, photo: "" })}
+                            className="text-[10px] font-bold text-red-600 hover:text-red-800 mt-1.5 transition-colors flex items-center gap-1 mx-auto md:mx-0"
+                          >
+                            <Trash2 className="w-3" /> Remove Photo
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-xs font-medium text-slate-700 mb-1">Full Name *</label>
                     <div className="relative">
@@ -1139,6 +1256,44 @@ export default function EmployeeManagement() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl max-w-md w-full shadow-xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <div className="flex items-center gap-4 text-red-600 mb-4">
+                <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                  <Trash2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Delete Employee</h3>
+                  <p className="text-sm text-slate-500">Permanently remove this employee profile.</p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+                Are you sure you want to delete this employee?
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmId(null)}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

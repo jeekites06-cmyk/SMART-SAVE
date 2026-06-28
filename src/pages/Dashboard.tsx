@@ -17,6 +17,7 @@ import { Link } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { calculateCollectionBreakdown } from "../utils/finance";
+import { getMemberDueInfo } from "../utils/reminder";
 
 export default function Dashboard() {
   const { members, collections, financialSummary, settings, commissionPayments, employees } = useData();
@@ -198,7 +199,78 @@ export default function Dashboard() {
 
   const maxChartValue = Math.max(...chartData.map((d) => d.total), 1);
 
+  // Multiple plans stats
+  const totalActivePlans = members.reduce((sum, m) => {
+    const plans = m.plans || [
+      {
+        id: `${m.id}-PLAN-1`,
+        dailyAmount: parseInt(m.dailyAmount || "127", 10),
+        status: m.status === "Active" ? "Active" : "Closed",
+        startDate: m.joinDate
+      }
+    ];
+    return sum + plans.filter((p) => p.status === "Active").length;
+  }, 0);
+
+  const memberTotalDailyAmount = members.reduce((sum, m) => {
+    const plans = m.plans || [
+      {
+        id: `${m.id}-PLAN-1`,
+        dailyAmount: parseInt(m.dailyAmount || "127", 10),
+        status: m.status === "Active" ? "Active" : "Closed",
+        startDate: m.joinDate
+      }
+    ];
+    return sum + plans.filter((p) => p.status === "Active").reduce((s, p) => s + p.dailyAmount, 0);
+  }, 0);
+
+  // Calculate Reminder statistics dynamically
+  const todayDateStr = new Date().toISOString().split("T")[0];
+  const memberDues = members.map(m => getMemberDueInfo(m, collections, todayDateStr));
+  const totalDueMembers = memberDues.filter(m => m.dueDays > 0).length;
+  const todayPendingMembers = memberDues.filter(m => !m.paidToday).length;
+  const todayPaidMembers = memberDues.filter(m => m.paidToday).length;
+  const todayDueAmount = memberDues
+    .filter(m => !m.paidToday)
+    .reduce((sum, m) => sum + m.totalDailyAmount, 0);
+
   const stats = [
+    {
+      name: "Total Due Members",
+      value: totalDueMembers.toString(),
+      change: "",
+      subtext: "Members with overdue accounts",
+      subtextClass: "text-rose-600 font-bold",
+      highlight: "border-l-4 border-l-rose-500 bg-rose-50/20",
+      path: "/reminders",
+    },
+    {
+      name: "Today's Due Amount",
+      value: `₹${todayDueAmount.toLocaleString()}`,
+      change: "",
+      subtext: "Amount pending collection",
+      subtextClass: "text-amber-600 font-bold",
+      highlight: "border-l-4 border-l-amber-500 bg-amber-50/20",
+      path: "/reminders",
+    },
+    {
+      name: "Today's Paid Members",
+      value: todayPaidMembers.toString(),
+      change: "",
+      subtext: "Members who paid today",
+      subtextClass: "text-emerald-600 font-bold",
+      highlight: "border-l-4 border-l-emerald-500 bg-emerald-50/20",
+      path: "/reminders",
+    },
+    {
+      name: "Today's Pending Members",
+      value: todayPendingMembers.toString(),
+      change: "",
+      subtext: "Pending daily collection",
+      subtextClass: "text-slate-500 font-bold",
+      highlight: "border-l-4 border-l-slate-400 bg-slate-50/20",
+      path: "/reminders",
+    },
     {
       name: "Today's Reg Revenue",
       value: `₹${todayRegistrationRevenue.toLocaleString()}`,
@@ -206,7 +278,7 @@ export default function Dashboard() {
       subtext: `From new registrations`,
       subtextClass: "text-purple-600 font-medium",
       highlight: "",
-      path: "/reports?type=Registration Report&date=Today",
+      path: "/members",
     },
     {
       name: "Total Reg Revenue",
@@ -236,13 +308,31 @@ export default function Dashboard() {
       path: "/members",
     },
     {
+      name: "Total Active Plans",
+      value: totalActivePlans.toString(),
+      change: "",
+      subtext: "Across all members",
+      subtextClass: "text-emerald-600 font-semibold",
+      highlight: "border-l-4 border-l-emerald-400",
+      path: "/members",
+    },
+    {
+      name: "Member Total Daily Amount",
+      value: `₹${memberTotalDailyAmount.toLocaleString()}`,
+      change: "",
+      subtext: "Daily target collection",
+      subtextClass: "text-[#003366] font-semibold",
+      highlight: "border-l-4 border-l-blue-400",
+      path: "/members",
+    },
+    {
       name: "Today's Collection",
       value: `₹${todayCollection.toLocaleString()}`,
       change: "",
       subtext: `Today's total`,
       subtextClass: "text-blue-600 font-medium",
       highlight: "",
-      path: "/reports?type=Daily Collection Report&date=Today",
+      path: "/daily-collection",
     },
     {
       name: "Total Member Savings",
@@ -251,7 +341,7 @@ export default function Dashboard() {
       subtext: "Assets under management",
       subtextClass: "text-emerald-600",
       highlight: "",
-      path: "/reports?type=Member-wise Report&date=All Time",
+      path: "/members",
     },
     {
       name: "Bonus Fund",
@@ -260,7 +350,7 @@ export default function Dashboard() {
       subtext: "Total distributed",
       subtextClass: "text-orange-600",
       highlight: "",
-      path: "/reports?type=Bonus Fund Report&date=All Time",
+      path: "/commissions",
     },
     {
       name: "Company Daily Profit",
@@ -297,7 +387,7 @@ export default function Dashboard() {
       subtext: "Earned today",
       subtextClass: "text-emerald-600 font-medium",
       highlight: "border-l-4 border-l-emerald-400",
-      path: isEmployeeUser ? "/dashboard" : "/commissions",
+      path: "/commissions",
     },
     {
       name: isEmployeeUser ? "My Monthly Commission" : "Monthly Employee Commission",
@@ -306,7 +396,7 @@ export default function Dashboard() {
       subtext: "Earned this month",
       subtextClass: "text-emerald-600 font-medium",
       highlight: "border-l-4 border-l-emerald-400",
-      path: isEmployeeUser ? "/dashboard" : "/commissions",
+      path: "/commissions",
     },
     {
       name: isEmployeeUser ? "My Total Paid Commission" : "Total Commission Paid",
@@ -315,7 +405,7 @@ export default function Dashboard() {
       subtext: "Paid commission",
       subtextClass: "text-blue-600 font-medium",
       highlight: "border-l-4 border-l-blue-400",
-      path: isEmployeeUser ? "/dashboard" : "/commissions",
+      path: "/commissions",
     },
     {
       name: isEmployeeUser ? "My Pending Commission" : "Pending Commission",
@@ -324,7 +414,7 @@ export default function Dashboard() {
       subtext: "Awaiting payment",
       subtextClass: "text-amber-600 font-semibold",
       highlight: "border-l-4 border-l-amber-400",
-      path: isEmployeeUser ? "/dashboard" : "/commissions",
+      path: "/commissions",
     },
   ];
 

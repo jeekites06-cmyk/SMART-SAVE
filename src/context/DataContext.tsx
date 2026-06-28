@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { Member, Collection, CompanySettings, AuditLog, FinancialSummary, Employee, AttendanceRecord, LoginHistoryRecord, CommissionPayment } from "../types";
+import { Member, Collection, CompanySettings, AuditLog, FinancialSummary, Employee, AttendanceRecord, LoginHistoryRecord, CommissionPayment, ReminderHistoryItem } from "../types";
 import { calculateFinancialSummary } from "../utils/finance";
 
 interface DataContextType {
@@ -12,9 +12,12 @@ interface DataContextType {
   attendance: AttendanceRecord[];
   loginHistory: LoginHistoryRecord[];
   commissionPayments: CommissionPayment[];
+  reminderHistory: ReminderHistoryItem[];
   addMember: (member: Omit<Member, "id">) => void;
   updateMember: (id: string, member: Partial<Member>) => void;
   deleteMember: (id: string) => void;
+  addMemberPlan: (memberId: string, dailyAmount: number, startDate?: string) => void;
+  updateMemberPlanStatus: (memberId: string, planId: string, newStatus: "Active" | "Paused" | "Closed") => void;
   addCollection: (collection: Omit<Collection, "id" | "receiptNo">) => Collection;
   updateCollection: (id: string, collection: Partial<Collection>) => void;
   deleteCollection: (id: string) => void;
@@ -29,6 +32,7 @@ interface DataContextType {
   addCommissionPayment: (payment: Omit<CommissionPayment, "id" | "timestamp">) => void;
   updateCommissionPayment: (id: string, updates: Partial<CommissionPayment>) => void;
   deleteCommissionPayment: (id: string) => void;
+  addReminderHistoryItem: (item: Omit<ReminderHistoryItem, "id">) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -44,15 +48,15 @@ const defaultSettings: CompanySettings = {
   dailyDeposit: "127",
   memberSavings: "102",
   companyCollection: "25",
-  bonusPercentage: "60",
-  companyProfitPercentage: "40",
+  bonusPercentage: "0",
+  companyProfitPercentage: "0",
   planDuration: "180",
   employeeCommissionPerCollection: "5",
   
   // keep legacy fields to not break existing logic
   defaultDailyAmount: "127",
   companyCommission: "25",
-  lateFeePenalty: "50",
+  lateFeePenalty: "300",
 
   // New general settings defaults
   companyLogo: "",
@@ -60,7 +64,7 @@ const defaultSettings: CompanySettings = {
   gstNumber: "29GGGGG1314R9Z6",
 
   // New financial settings defaults
-  gracePeriod: "5",
+  gracePeriod: "30",
 
   // New receipt settings defaults
   receiptPrefix: "RCT",
@@ -87,6 +91,27 @@ const defaultSettings: CompanySettings = {
   maturityReminderDays: "7",
 };
 
+const upgradeMembers = (rawMembers: any[]): Member[] => {
+  return rawMembers.map((m: any) => {
+    const upgraded = { ...m };
+    if (!upgraded.registrationStatus) {
+      upgraded.registrationStatus = "Verified";
+    }
+    if (!upgraded.planUnits) {
+      upgraded.planUnits = Math.round(parseInt(upgraded.dailyAmount || "127", 10) / 127) || 1;
+    }
+    if (!upgraded.plans || upgraded.plans.length === 0) {
+      upgraded.plans = Array.from({ length: upgraded.planUnits }, (_, idx) => ({
+        id: `${upgraded.id}-PLAN-${idx + 1}`,
+        dailyAmount: 127,
+        status: upgraded.status === "Active" ? "Active" : "Closed",
+        startDate: upgraded.joinDate || new Date().toISOString().split("T")[0]
+      }));
+    }
+    return upgraded as Member;
+  });
+};
+
 export function DataProvider({ children }: { children: React.ReactNode }) {
   // Sync clean reset check before initial states run
   if (typeof window !== "undefined") {
@@ -104,7 +129,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const [members, setMembers] = useState<Member[]>(() => {
     const saved = localStorage.getItem("smartsave_members");
-    return saved ? JSON.parse(saved) : [];
+    const parsed = saved ? JSON.parse(saved) : [];
+    return upgradeMembers(parsed);
   });
 
   const [collections, setCollections] = useState<Collection[]>(() => {
@@ -115,13 +141,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<CompanySettings>(() => {
     const saved = localStorage.getItem("smartsave_settings");
     if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed.adminUsername !== "smartadmin" || parsed.adminPassword !== "Admin@2026") {
-        parsed.adminUsername = "smartadmin";
-        parsed.adminPassword = "Admin@2026";
-        localStorage.setItem("smartsave_settings", JSON.stringify(parsed));
-      }
-      return parsed;
+      return JSON.parse(saved);
     }
     return defaultSettings;
   });
@@ -161,6 +181,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [reminderHistory, setReminderHistory] = useState<ReminderHistoryItem[]>(() => {
+    const saved = localStorage.getItem("smartsave_reminder_history");
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const financialSummary = React.useMemo(() => calculateFinancialSummary(collections, members, settings), [collections, members, settings]);
 
   useEffect(() => {
@@ -195,6 +220,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("smartsave_commission_payments", JSON.stringify(commissionPayments));
   }, [commissionPayments]);
 
+  useEffect(() => {
+    localStorage.setItem("smartsave_reminder_history", JSON.stringify(reminderHistory));
+  }, [reminderHistory]);
+
   const addAuditLog = (action: string, details: string) => {
     setAuditLogs((prev) => [
       {
@@ -215,11 +244,27 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     setMembers((prev) => {
       const maxId = prev.reduce((max, m) => {
-        const num = parseInt(m.id.replace("MEM-", ""), 10);
+        const cleanedId = m.id.replace("MEM-", "").replace("MEM", "");
+        const num = parseInt(cleanedId, 10);
         return isNaN(num) ? max : Math.max(max, num);
       }, 0);
       const newId = `MEM-${String(maxId + 1).padStart(3, "0")}`;
-      const newMember = { ...member, id: newId, registeredBy } as Member;
+      const planUnits = member.planUnits || Math.round(parseInt(member.dailyAmount || "127", 10) / 127) || 1;
+      const generatedPlans = Array.from({ length: planUnits }, (_, idx) => ({
+        id: `${newId}-PLAN-${idx + 1}`,
+        dailyAmount: 127,
+        status: "Active" as const,
+        startDate: member.joinDate || new Date().toISOString().split("T")[0]
+      }));
+      const newMember = {
+        ...member,
+        id: newId,
+        planUnits,
+        dailyAmount: (planUnits * 127).toString(),
+        registeredBy,
+        registrationStatus: "Verified",
+        plans: generatedPlans
+      } as Member;
       addAuditLog("Create Member", `Created member ${newId} (${newMember.name})`);
       
       // Auto-create Registration Fee collection
@@ -249,7 +294,36 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const updateMember = (id: string, member: Partial<Member>) => {
     setMembers((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, ...member } : m))
+      prev.map((m) => {
+        if (m.id !== id) return m;
+        const updated = { ...m, ...member };
+        if (member.planUnits !== undefined) {
+          const planUnits = member.planUnits;
+          updated.dailyAmount = (planUnits * 127).toString();
+          const currentPlans = m.plans || [];
+          const activePlans = currentPlans.filter(p => p.status === "Active");
+          const nonActivePlans = currentPlans.filter(p => p.status !== "Active");
+          if (activePlans.length !== planUnits) {
+            let newActivePlans = [...activePlans];
+            if (activePlans.length < planUnits) {
+              const needed = planUnits - activePlans.length;
+              for (let i = 0; i < needed; i++) {
+                const nextIdx = currentPlans.length + i + 1;
+                newActivePlans.push({
+                  id: `${id}-PLAN-${nextIdx}`,
+                  dailyAmount: 127,
+                  status: "Active",
+                  startDate: member.joinDate || m.joinDate || new Date().toISOString().split("T")[0]
+                });
+              }
+            } else {
+              newActivePlans = activePlans.slice(0, planUnits);
+            }
+            updated.plans = [...newActivePlans, ...nonActivePlans];
+          }
+        }
+        return updated;
+      })
     );
     addAuditLog("Update Member", `Updated member details for ${id}`);
   };
@@ -258,6 +332,74 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMembers((prev) => prev.filter((m) => m.id !== id));
     setCollections((prev) => prev.filter((c) => c.memberId !== id));
     addAuditLog("Delete Member", `Deleted member ${id} and their collections`);
+  };
+
+  const addMemberPlan = (memberId: string, dailyAmount: number, startDate?: string) => {
+    setMembers((prev) => {
+      const updated = prev.map((m) => {
+        if (m.id !== memberId) return m;
+        const currentPlans = m.plans || [
+          {
+            id: `${m.id}-PLAN-1`,
+            dailyAmount: parseInt(m.dailyAmount || "127", 10),
+            status: m.status === "Active" ? "Active" : "Closed",
+            startDate: m.joinDate
+          }
+        ];
+        const nextIdx = currentPlans.length + 1;
+        const newPlan = {
+          id: `${m.id}-PLAN-${nextIdx}`,
+          dailyAmount,
+          status: "Active" as const,
+          startDate: startDate || new Date().toISOString().split("T")[0]
+        };
+        const updatedPlans = [...currentPlans, newPlan];
+        const activePlans = updatedPlans.filter((p) => p.status === "Active");
+        const totalDaily = activePlans.reduce((sum, p) => sum + p.dailyAmount, 0);
+
+        return {
+          ...m,
+          plans: updatedPlans,
+          dailyAmount: totalDaily.toString(),
+          planUnits: Math.round(totalDaily / 127) || 1,
+          status: (activePlans.length > 0 ? "Active" : "Inactive") as "Active" | "Inactive"
+        };
+      });
+      addAuditLog("Add Plan", `Added ${dailyAmount} Plan to Member ${memberId}`);
+      return updated;
+    });
+  };
+
+  const updateMemberPlanStatus = (memberId: string, planId: string, newStatus: "Active" | "Paused" | "Closed") => {
+    setMembers((prev) => {
+      const updated = prev.map((m) => {
+        if (m.id !== memberId) return m;
+        const currentPlans = m.plans || [
+          {
+            id: `${m.id}-PLAN-1`,
+            dailyAmount: parseInt(m.dailyAmount || "127", 10),
+            status: m.status === "Active" ? "Active" : "Closed",
+            startDate: m.joinDate
+          }
+        ];
+        const updatedPlans = currentPlans.map((p) => {
+          if (p.id !== planId) return p;
+          return { ...p, status: newStatus };
+        });
+        const activePlans = updatedPlans.filter((p) => p.status === "Active");
+        const totalDaily = activePlans.reduce((sum, p) => sum + p.dailyAmount, 0);
+
+        return {
+          ...m,
+          plans: updatedPlans,
+          dailyAmount: totalDaily.toString(),
+          planUnits: Math.round(totalDaily / 127) || 1,
+          status: (activePlans.length > 0 ? "Active" : "Inactive") as "Active" | "Inactive"
+        };
+      });
+      addAuditLog("Update Plan Status", `Plan ${planId} of Member ${memberId} changed status to ${newStatus}`);
+      return updated;
+    });
   };
 
   const addCollection = (collection: Omit<Collection, "id" | "receiptNo">): Collection => {
@@ -364,15 +506,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateSettings = (updates: Partial<CompanySettings>) => {
-    const safeUpdates = { ...updates };
-    if (safeUpdates.adminUsername) safeUpdates.adminUsername = "smartadmin";
-    if (safeUpdates.adminPassword) safeUpdates.adminPassword = "Admin@2026";
-    setSettings((prev) => ({ ...prev, ...safeUpdates }));
+    setSettings((prev) => ({ ...prev, ...updates }));
     addAuditLog("Update Settings", `Updated company settings`);
   };
 
   const backupData = () => {
-    const data = { members, collections, settings, auditLogs, employees, attendance, loginHistory, commissionPayments };
+    const data = { members, collections, settings, auditLogs, employees, attendance, loginHistory, commissionPayments, reminderHistory };
     const blob = new Blob([JSON.stringify(data, null, 2)], {
       type: "application/json",
     });
@@ -389,7 +528,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     try {
       const parsed = JSON.parse(jsonString);
       if (parsed.members && Array.isArray(parsed.members)) {
-        setMembers(parsed.members);
+        setMembers(upgradeMembers(parsed.members));
       }
       if (parsed.collections && Array.isArray(parsed.collections)) {
         setCollections(parsed.collections);
@@ -411,6 +550,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
       if (parsed.commissionPayments && Array.isArray(parsed.commissionPayments)) {
         setCommissionPayments(parsed.commissionPayments);
+      }
+      if (parsed.reminderHistory && Array.isArray(parsed.reminderHistory)) {
+        setReminderHistory(parsed.reminderHistory);
       }
       addAuditLog("Restore Data", `Restored data from backup`);
     } catch (e) {
@@ -448,6 +590,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     addAuditLog("Commission Updated", `Deleted commission record ${id} for ${p?.employeeName || "unknown"}`);
   };
 
+  const addReminderHistoryItem = (item: Omit<ReminderHistoryItem, "id">) => {
+    const newItem: ReminderHistoryItem = {
+      ...item,
+      id: Math.random().toString(36).substr(2, 9),
+    };
+    setReminderHistory((prev) => [newItem, ...prev]);
+    addAuditLog("Sent Reminder", `Sent reminder to member ${item.memberName} (${item.memberId}) with outstanding amount ₹${item.dueAmount}`);
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -463,6 +614,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         addMember,
         updateMember,
         deleteMember,
+        addMemberPlan,
+        updateMemberPlanStatus,
         addCollection,
         updateCollection,
         deleteCollection,
@@ -477,6 +630,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         addCommissionPayment,
         updateCommissionPayment,
         deleteCommissionPayment,
+        reminderHistory,
+        addReminderHistoryItem,
       }}
     >
       {children}

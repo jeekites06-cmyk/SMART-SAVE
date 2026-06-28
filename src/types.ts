@@ -13,6 +13,14 @@ export interface User {
   role: Role;
   name?: string;
   memberId?: string;
+  photo?: string;
+}
+
+export interface MemberPlan {
+  id: string;
+  dailyAmount: number;
+  status: "Active" | "Paused" | "Closed";
+  startDate: string;
 }
 
 export interface Member {
@@ -29,6 +37,10 @@ export interface Member {
   status: "Active" | "Inactive";
   balance?: string; // Optional, to keep compatibility with existing balance logic
   registeredBy?: string; // Employee ID or 'admin'
+  plans?: MemberPlan[];
+  registrationStatus?: string; // e.g. "Verified"
+  planUnits?: number;
+  photo?: string;
 }
 
 export interface Collection {
@@ -62,6 +74,7 @@ export interface Employee {
   registrationCommission?: string;
   joinDate: string;
   status: "Active" | "Inactive";
+  photo?: string;
 }
 
 export interface AttendanceRecord {
@@ -102,6 +115,7 @@ export interface CompanySettings {
   contactEmail: string;
   supportPhone: string;
   adminPassword?: string;
+  adminPhoto?: string;
   
   registrationFee?: string;
   dailyDeposit?: string;
@@ -159,6 +173,7 @@ export interface CommissionPayment {
   remarks: string;
   status: "Paid" | "Pending";
   timestamp: string;
+  period?: string; // YYYY-MM or similar cycle
 }
 
 export interface AuditLog {
@@ -167,3 +182,13 @@ export interface AuditLog {
   details: string;
   timestamp: string;
 }
+
+export interface ReminderHistoryItem {
+  id: string;
+  reminderDate: string; // YYYY-MM-DD or full timestamp
+  memberId: string;
+  memberName: string;
+  dueAmount: number;
+  status: string;
+}
+

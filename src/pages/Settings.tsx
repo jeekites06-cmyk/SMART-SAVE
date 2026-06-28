@@ -65,11 +65,11 @@ export default function Settings() {
     memberSavings: settings?.memberSavings || "102",
     companyCollection: settings?.companyCollection || "25",
     bonusPercentage: settings?.bonusPercentage || "60",
-    companyProfitPercentage: settings?.companyProfitPercentage || "40",
+    companyProfitPercentage: settings?.companyProfitPercentage || "0",
     employeeCommissionPerCollection: settings?.employeeCommissionPerCollection || "5",
-    lateFeePenalty: settings?.lateFeePenalty || "50",
+    lateFeePenalty: settings?.lateFeePenalty || "300",
     planDuration: settings?.planDuration || "180",
-    gracePeriod: settings?.gracePeriod || "5",
+    gracePeriod: settings?.gracePeriod || "30",
 
     receiptPrefix: settings?.receiptPrefix || "RCT",
     receiptFooter: settings?.receiptFooter || "Thank you for saving with Smart Save. Keep saving, keep growing!",
@@ -136,8 +136,14 @@ export default function Settings() {
 
   // Save Settings Changes
   const handleSave = () => {
-    updateSettings(formData);
-    showNotification("Settings saved successfully. All modules updated!");
+    const updatedData = {
+      ...formData,
+      dailyDeposit: "127",
+      memberSavings: "102",
+      companyCollection: "25"
+    };
+    updateSettings(updatedData);
+    showNotification("Financial Rules Updated Successfully.");
   };
 
   // Restore DB File Upload Handler
@@ -334,7 +340,7 @@ export default function Settings() {
                           <Upload className="w-3 h-3" /> Upload Logo
                           <input
                             type="file"
-                            accept="image/*"
+                            accept=".png, .jpg, .jpeg, .svg, image/png, image/jpeg, image/jpg, image/svg+xml, image/*"
                             onChange={(e) => handleImageUpload(e, "companyLogo")}
                             className="hidden"
                           />
@@ -458,74 +464,50 @@ export default function Settings() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Registration Fee (₹) *</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Registration Fee (₹) [Fixed] *</label>
                     <input
                       type="number"
                       name="registrationFee"
-                      value={formData.registrationFee}
-                      onChange={handleChange}
-                      placeholder="e.g. 2500"
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border text-right"
+                      value="2500"
+                      readOnly
+                      disabled
+                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-100 border text-right font-medium text-slate-500 cursor-not-allowed"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Daily Deposit (₹) *</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Daily Deposit (₹) [Fixed] *</label>
                     <input
                       type="number"
                       name="dailyDeposit"
-                      value={formData.dailyDeposit}
-                      onChange={handleChange}
-                      placeholder="e.g. 127"
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border text-right"
+                      value="127"
+                      readOnly
+                      disabled
+                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-100 border text-right font-medium text-slate-500 cursor-not-allowed"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Member Savings Fund Allocation (₹) *</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Member Savings Fund Allocation (₹) [Fixed] *</label>
                     <input
                       type="number"
                       name="memberSavings"
-                      value={formData.memberSavings}
-                      onChange={handleChange}
-                      placeholder="e.g. 102"
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border text-right"
+                      value="102"
+                      readOnly
+                      disabled
+                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-100 border text-right font-medium text-slate-500 cursor-not-allowed"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Company Collection Deductible (₹) *</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Company Collection Deductible (₹) [Fixed] *</label>
                     <input
                       type="number"
                       name="companyCollection"
-                      value={formData.companyCollection}
-                      onChange={handleChange}
-                      placeholder="e.g. 25"
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border text-right"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Bonus Allocation Percentage (%) *</label>
-                    <input
-                      type="number"
-                      name="bonusPercentage"
-                      value={formData.bonusPercentage}
-                      onChange={handleChange}
-                      placeholder="e.g. 60"
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border text-right"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Company Profit Percentage (%) *</label>
-                    <input
-                      type="number"
-                      name="companyProfitPercentage"
-                      value={formData.companyProfitPercentage}
-                      onChange={handleChange}
-                      placeholder="e.g. 40"
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border text-right"
+                      value="25"
+                      readOnly
+                      disabled
+                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-100 border text-right font-medium text-slate-500 cursor-not-allowed"
                     />
                   </div>
 
@@ -542,37 +524,25 @@ export default function Settings() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Late Fee Penalty (₹) *</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Late Payment One-time Fine (₹) *</label>
                     <input
                       type="number"
                       name="lateFeePenalty"
                       value={formData.lateFeePenalty}
                       onChange={handleChange}
-                      placeholder="e.g. 50"
+                      placeholder="e.g. 300"
                       className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border text-right"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Savings Plan Duration (Days) *</label>
-                    <input
-                      type="number"
-                      name="planDuration"
-                      value={formData.planDuration}
-                      onChange={handleChange}
-                      placeholder="e.g. 180"
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border text-right"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Grace Period Window (Days) *</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Late Payment Grace Period (Days) *</label>
                     <input
                       type="number"
                       name="gracePeriod"
                       value={formData.gracePeriod}
                       onChange={handleChange}
-                      placeholder="e.g. 5"
+                      placeholder="e.g. 30"
                       className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border text-right"
                     />
                   </div>
@@ -667,7 +637,7 @@ export default function Settings() {
                         Upload Stamp Image
                         <input
                           type="file"
-                          accept="image/*"
+                          accept=".png, .jpg, .jpeg, .svg, image/png, image/jpeg, image/jpg, image/svg+xml, image/*"
                           onChange={(e) => handleImageUpload(e, "companyStamp")}
                           className="hidden"
                         />
@@ -708,7 +678,7 @@ export default function Settings() {
                         Upload Signature Image
                         <input
                           type="file"
-                          accept="image/*"
+                          accept=".png, .jpg, .jpeg, .svg, image/png, image/jpeg, image/jpg, image/svg+xml, image/*"
                           onChange={(e) => handleImageUpload(e, "authorizedSignature")}
                           className="hidden"
                         />
@@ -737,7 +707,7 @@ export default function Settings() {
                         name="adminUsername"
                         value={formData.adminUsername}
                         onChange={handleChange}
-                        placeholder="Admin Username (default: smartadmin)"
+                        placeholder="Admin Username"
                         className="w-full border-slate-200 pl-10 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
                       />
                     </div>
