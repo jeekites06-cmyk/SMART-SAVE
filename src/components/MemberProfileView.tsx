@@ -525,7 +525,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
     <div className="space-y-6 max-w-5xl mx-auto pb-12" id="member-profile-module">
       {/* Alert Banner for Payment Success */}
       {paymentSuccessMsg && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl flex items-center gap-3 shadow-sm text-sm animate-in slide-in-from-top duration-300">
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl flex items-center gap-3 shadow-lg text-sm animate-in slide-in-from-top duration-300">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
           <span className="font-semibold">{paymentSuccessMsg}</span>
         </div>
@@ -538,7 +538,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
         <div className="lg:col-span-7 space-y-6">
           
           {/* MEMBER PROFILE SECTION */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg relative overflow-hidden">
             <div className="absolute top-0 right-0 h-2 w-full bg-[#003366]" />
             <h3 className="font-bold text-slate-800 text-base uppercase tracking-wider mb-5 pb-3 border-b border-slate-100 flex items-center gap-2">
               <UserIcon className="w-5 h-5 text-[#003366]" /> Member Profile Card
@@ -639,12 +639,12 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
           </div>
 
           {/* PLAN DETAILS SECTION */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg relative overflow-hidden">
             <h3 className="font-bold text-slate-800 text-base uppercase tracking-wider mb-4 pb-3 border-b border-slate-100 flex items-center gap-2">
               <Coins className="w-5 h-5 text-amber-500" /> Plan Composition Details
             </h3>
 
-            <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl mb-5">
+            <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl mb-5">
               <h4 className="font-bold text-slate-800 text-sm">SMART SAVE BASIC PLAN</h4>
               <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                 The absolute standard financial layout structure: 180 Days maturity cycle with 3 Years holding period.
@@ -681,19 +681,19 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
             {/* Live Units Summary Cards */}
             <h5 className="font-bold text-slate-500 text-xs uppercase tracking-wider mb-3">Your Subscribed Plan Units</h5>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl text-center">
+              <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-2xl text-center">
                 <span className="text-[10px] text-blue-500 font-extrabold uppercase tracking-widest">Active Units</span>
                 <span className="block font-black text-2xl text-[#003366] mt-1">{totalActivePlans}</span>
               </div>
-              <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl text-center">
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl text-center">
                 <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-widest">Daily Deposit</span>
                 <span className="block font-black text-xl text-slate-800 mt-1">₹{totalDailyAmount}</span>
               </div>
-              <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl text-center">
+              <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl text-center">
                 <span className="text-[10px] text-emerald-500 font-extrabold uppercase tracking-widest">Daily Savings</span>
                 <span className="block font-black text-xl text-emerald-600 mt-1">₹{totalActivePlans * 102}</span>
               </div>
-              <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl text-center">
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl text-center">
                 <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-widest">Daily Company</span>
                 <span className="block font-black text-xl text-slate-700 mt-1">₹{totalActivePlans * 25}</span>
               </div>
@@ -737,61 +737,61 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
         <div className="lg:col-span-5 space-y-6">
 
           {/* PAYMENT SUMMARY */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg relative overflow-hidden">
             <h3 className="font-bold text-slate-800 text-base uppercase tracking-wider mb-4 pb-3 border-b border-slate-100 flex items-center gap-2">
               <ClipboardList className="w-5 h-5 text-blue-500" /> Payment & Collection Summary
             </h3>
             
             <div className="grid grid-cols-2 gap-4 text-xs font-semibold text-slate-600">
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
                 <span className="text-slate-400 block font-bold uppercase text-[9px]">Today's Payment</span>
                 <span className={`inline-flex items-center gap-1 font-bold text-sm mt-1 ${dueInfo.paidToday ? "text-emerald-600" : "text-amber-600"}`}>
                   {dueInfo.paidToday ? "Paid" : "Pending"}
                 </span>
               </div>
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
                 <span className="text-slate-400 block font-bold uppercase text-[9px]">Yesterday's Payment</span>
                 <span className={`inline-flex items-center gap-1 font-bold text-sm mt-1 ${paidYesterday ? "text-emerald-600" : "text-amber-600"}`}>
                   {paidYesterday ? "Paid" : "Pending"}
                 </span>
               </div>
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
                 <span className="text-slate-400 block font-bold uppercase text-[9px]">Pending Days</span>
                 <span className="font-bold text-sm text-slate-800 block mt-1">{dueInfo.dueDays} Days</span>
               </div>
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
                 <span className="text-slate-400 block font-bold uppercase text-[9px]">Due Amount</span>
                 <span className="font-bold text-sm text-rose-600 block mt-1">₹{dueInfo.dueAmount}</span>
               </div>
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
                 <span className="text-slate-400 block font-bold uppercase text-[9px]">Fine Amount</span>
                 <span className="font-bold text-sm text-rose-600 block mt-1">₹{dueInfo.fineAmount}</span>
               </div>
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
                 <span className="text-slate-400 block font-bold uppercase text-[9px]">Last Payment Date</span>
                 <span className="font-bold text-xs text-slate-700 block mt-1.5">{dueInfo.lastPaymentDate}</span>
               </div>
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
                 <span className="text-slate-400 block font-bold uppercase text-[9px]">Last Receipt Number</span>
                 <span className="font-mono text-[10px] text-slate-700 font-bold block mt-2 break-all">{lastReceiptNo}</span>
               </div>
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
                 <span className="text-slate-400 block font-bold uppercase text-[9px]">Total Paid Days</span>
                 <span className="font-bold text-sm text-emerald-600 block mt-1">{totalPaidDays} / 180 Days</span>
               </div>
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
                 <span className="text-slate-400 block font-bold uppercase text-[9px]">Remaining Days</span>
                 <span className="font-bold text-sm text-slate-800 block mt-1">{remainingDays} Days</span>
               </div>
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
                 <span className="text-slate-400 block font-bold uppercase text-[9px]">Total Collections</span>
                 <span className="font-bold text-sm text-slate-800 block mt-1">₹{totalCollections}</span>
               </div>
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
                 <span className="text-slate-400 block font-bold uppercase text-[9px]">Total Savings</span>
                 <span className="font-bold text-sm text-emerald-600 block mt-1">₹{totalSavingsCalculated}</span>
               </div>
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
                 <span className="text-slate-400 block font-bold uppercase text-[9px]">Total Company Collection</span>
                 <span className="font-bold text-sm text-slate-700 block mt-1">₹{totalCompanyCollectionCalculated}</span>
               </div>
@@ -799,7 +799,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
           </div>
 
           {/* MATURITY SECTION (Read Only) */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden bg-gradient-to-br from-emerald-50/20 to-teal-50/20">
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg relative overflow-hidden bg-gradient-to-br from-emerald-50/20 to-teal-50/20">
             <h3 className="font-bold text-[#003366] text-base uppercase tracking-wider mb-4 pb-3 border-b border-slate-100 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-emerald-600" /> Maturity Outlook <span className="text-[10px] bg-emerald-100 text-emerald-800 rounded px-1.5 py-0.5 font-bold uppercase ml-auto border border-emerald-200 shrink-0">Read Only</span>
             </h3>
@@ -810,7 +810,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
                 <span>Payment Progress</span>
                 <span className="text-[#003366]">{totalPaidDays} / 180 Days</span>
               </div>
-              <div className="w-full bg-slate-100 rounded-full h-3.5 border border-slate-200 overflow-hidden">
+              <div className="w-full bg-slate-100 rounded-full h-3.5 border border-slate-100 overflow-hidden">
                 <div 
                   className="bg-[#003366] h-full rounded-full transition-all duration-500 relative"
                   style={{ width: `${progressPercentage}%` }}
@@ -848,7 +848,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
             </div>
 
             {/* Total Maturity Value Card */}
-            <div className="mt-5 p-4 bg-emerald-600 rounded-xl text-white shadow-md relative overflow-hidden">
+            <div className="mt-5 p-4 bg-emerald-600 rounded-2xl text-white shadow-md relative overflow-hidden">
               <div className="absolute right-0 bottom-0 text-white/5 font-black text-6xl select-none translate-x-3 translate-y-3">
                 SAVE
               </div>
@@ -869,7 +869,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
           </div>
 
           {/* ACTIONS */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg">
             <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-4 pb-3 border-b border-slate-100">
               Account Actions
             </h3>
@@ -877,7 +877,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button 
                 onClick={() => setShowCollectModal(true)}
-                className="w-full px-4 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full px-4 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-2xl shadow-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Coins className="w-4 h-4" /> Collect Payment
               </button>
@@ -888,7 +888,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
                   const el = document.getElementById("profile-tabs-section");
                   if (el) el.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="w-full px-4 py-2.5 text-xs font-bold text-[#003366] bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors border border-blue-100 flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full px-4 py-2.5 text-xs font-bold text-[#003366] bg-blue-50 hover:bg-blue-100 rounded-2xl transition-colors border border-blue-100 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <FileText className="w-4 h-4" /> View Receipts
               </button>
@@ -899,28 +899,28 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
                   const el = document.getElementById("profile-tabs-section");
                   if (el) el.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="w-full px-4 py-2.5 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full px-4 py-2.5 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-2xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <History className="w-4 h-4" /> Reminder History
               </button>
 
               <button 
                 onClick={handlePrintMemberCard}
-                className="w-full px-4 py-2.5 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full px-4 py-2.5 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-2xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Printer className="w-4 h-4" /> Print Member Card
               </button>
 
               <button 
                 onClick={handleDownloadMemberPDF}
-                className="w-full px-4 py-2.5 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full px-4 py-2.5 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-2xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Download className="w-4 h-4" /> Download Member PDF
               </button>
 
               <button 
                 onClick={handleShareWhatsApp}
-                className="w-full px-4 py-2.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full px-4 py-2.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 rounded-2xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <MessageCircle className="w-4 h-4" /> Share WhatsApp Receipt
               </button>
@@ -929,7 +929,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
 
           {/* PLAN MANAGEMENT SECTION (Admin Only) */}
           {isAdmin && (
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg relative overflow-hidden">
               <div className="absolute top-0 left-0 h-1.5 w-full bg-indigo-600" />
               <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-4 pb-3 border-b border-slate-100 flex items-center gap-2">
                 <Shield className="w-5 h-5 text-indigo-600" /> Administrative Plan Management
@@ -940,13 +940,13 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
                 <div className="grid grid-cols-2 gap-3">
                   <button 
                     onClick={handleIncreaseUnits}
-                    className="px-3 py-2 text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-100 flex items-center justify-center gap-1 cursor-pointer"
+                    className="px-3 py-2 text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-2xl border border-indigo-100 flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" /> Increase Plan Units
                   </button>
                   <button 
                     onClick={handleDecreaseUnits}
-                    className="px-3 py-2 text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-100 flex items-center justify-center gap-1 cursor-pointer"
+                    className="px-3 py-2 text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-2xl border border-indigo-100 flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <Minus className="w-3.5 h-3.5" /> Decrease Plan Units
                   </button>
@@ -981,9 +981,9 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
       </div>
 
       {/* HISTORY & LOGS TAB SECTION */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" id="profile-tabs-section">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-lg overflow-hidden" id="profile-tabs-section">
         {/* Tab Headers */}
-        <div className="flex border-b border-slate-200 bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 overflow-x-auto whitespace-nowrap">
+        <div className="flex border-b border-slate-100 bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 overflow-x-auto whitespace-nowrap">
           <button 
             onClick={() => setActiveTab("payment")}
             className={`px-6 py-4 border-b-2 flex items-center gap-2 cursor-pointer ${activeTab === "payment" ? "border-[#003366] text-[#003366] bg-white" : "border-transparent hover:text-slate-800"}`}
@@ -1013,7 +1013,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
         {/* Tab Body */}
         <div className="p-6">
           {activeTab === "payment" && (
-            <div className="overflow-x-auto rounded-xl border border-slate-100">
+            <div className="overflow-x-auto rounded-2xl border border-slate-100">
               <table className="w-full text-left text-xs whitespace-nowrap">
                 <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-100">
                   <tr>
@@ -1064,7 +1064,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
           )}
 
           {activeTab === "receipt" && (
-            <div className="overflow-x-auto rounded-xl border border-slate-100">
+            <div className="overflow-x-auto rounded-2xl border border-slate-100">
               <table className="w-full text-left text-xs whitespace-nowrap">
                 <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-100">
                   <tr>
@@ -1110,7 +1110,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
           )}
 
           {activeTab === "reminder" && (
-            <div className="overflow-x-auto rounded-xl border border-slate-100">
+            <div className="overflow-x-auto rounded-2xl border border-slate-100">
               <table className="w-full text-left text-xs whitespace-nowrap">
                 <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-100">
                   <tr>
@@ -1142,7 +1142,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
           )}
 
           {activeTab === "audit" && (
-            <div className="overflow-x-auto rounded-xl border border-slate-100">
+            <div className="overflow-x-auto rounded-2xl border border-slate-100">
               <table className="w-full text-left text-xs whitespace-nowrap">
                 <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-100">
                   <tr>
@@ -1188,7 +1188,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
                   min={1} 
                   value={collectDays} 
                   onChange={(e) => setCollectDays(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#003366] font-bold"
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-100 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#003366] font-bold"
                   required
                 />
               </div>
@@ -1200,7 +1200,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
                   placeholder="Leave empty for auto-generation"
                   value={collectReceiptNo} 
                   onChange={(e) => setCollectReceiptNo(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#003366]"
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-100 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#003366]"
                 />
               </div>
 
@@ -1210,12 +1210,12 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
                   placeholder="Enter details..."
                   value={collectNotes} 
                   onChange={(e) => setCollectNotes(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#003366]"
+                  className="w-full px-3.5 py-2 rounded-2xl border border-slate-100 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#003366]"
                   rows={2}
                 />
               </div>
 
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
                 <div className="flex justify-between">
                   <span className="text-slate-400 uppercase tracking-wider">Plan Scale</span>
                   <span className="text-slate-800 font-bold">{totalActivePlans} Active Unit{totalActivePlans > 1 ? "s" : ""}</span>
@@ -1234,13 +1234,13 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
                 <button 
                   type="button" 
                   onClick={() => setShowCollectModal(false)}
-                  className="px-4 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
+                  className="px-4 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-2xl hover:bg-slate-50 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm transition-colors cursor-pointer"
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg transition-colors cursor-pointer"
                 >
                   Complete Payment
                 </button>
@@ -1269,7 +1269,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
                 <div className="absolute top-0 left-0 w-full h-2 bg-[#003366]" />
                 
                 {/* Branding Block */}
-                <div className="flex justify-between items-center mb-6 border-b border-slate-200 pb-3">
+                <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-3">
                   <div>
                     <h4 className="text-base font-black text-[#003366] tracking-wider uppercase">SMART SAVE</h4>
                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Authorized Member Card</span>
@@ -1282,7 +1282,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
                 {/* Content Block */}
                 <div className="flex gap-4">
                   {/* Photo Left */}
-                  <div className="w-24 h-24 rounded-xl border border-slate-200 shadow-inner shrink-0 overflow-hidden bg-white flex items-center justify-center">
+                  <div className="w-24 h-24 rounded-2xl border border-slate-100 shadow-inner shrink-0 overflow-hidden bg-white flex items-center justify-center">
                     {(viewingMember as any).photo ? (
                       <img 
                         src={(viewingMember as any).photo} 
@@ -1320,7 +1320,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
                 </div>
 
                 {/* Bottom Bar Details */}
-                <div className="mt-5 pt-3 border-t border-slate-200 grid grid-cols-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider gap-y-1">
+                <div className="mt-5 pt-3 border-t border-slate-100 grid grid-cols-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider gap-y-1">
                   <div>Join Date: <span className="text-slate-700 font-extrabold">{regDate}</span></div>
                   <div className="text-right">Maturity: <span className="text-emerald-600 font-extrabold">{maturityDateObj.toLocaleDateString()}</span></div>
                 </div>
@@ -1329,13 +1329,13 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
               <div className="flex justify-end gap-3 w-full mt-6">
                 <button 
                   onClick={() => setShowPrintCard(false)}
-                  className="px-4 py-2 text-xs font-bold bg-white border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
+                  className="px-4 py-2 text-xs font-bold bg-white border border-slate-300 text-slate-700 rounded-2xl hover:bg-slate-50 transition-colors cursor-pointer"
                 >
                   Close
                 </button>
                 <button 
                   onClick={triggerPrintWindow}
-                  className="px-5 py-2 text-xs font-bold bg-[#003366] text-white rounded-xl hover:bg-blue-800 transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  className="px-5 py-2 text-xs font-bold bg-[#003366] text-white rounded-2xl hover:bg-blue-800 transition-colors flex items-center gap-1.5 cursor-pointer shadow-lg"
                 >
                   <Printer className="w-4 h-4" /> Print Card Now
                 </button>

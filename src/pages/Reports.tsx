@@ -370,55 +370,55 @@ export default function Reports() {
     <div className="space-y-6 max-w-7xl mx-auto pb-12 print:m-0 print:p-0">
       <div className="flex justify-between items-center print:hidden">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Financial Reports</h1>
+          <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#374151] to-[#111827]">Financial Reports</h1>
           <p className="text-slate-500 text-sm mt-1">Generate and analyze financial data and member statistics.</p>
         </div>
       </div>
       
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 print:hidden">
-         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-lg">
            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Today's Collection</p>
            <p className="text-xl font-bold text-slate-800">₹{todaysCollectionAmount.toLocaleString()}</p>
          </div>
-         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-lg">
            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Today's Savings</p>
-           <p className="text-xl font-bold text-[#003366]">₹{todaysSavingsAmount.toLocaleString()}</p>
+           <p className="text-xl font-bold text-[#374151]">₹{todaysSavingsAmount.toLocaleString()}</p>
          </div>
-         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-lg">
            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Today's Company Rev</p>
            <p className="text-xl font-bold text-slate-800">₹{todaysCompanyRevenue.toLocaleString()}</p>
          </div>
-         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-lg">
            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Today's Bonus</p>
            <p className="text-xl font-bold text-purple-600">₹{todaysBonus.toLocaleString()}</p>
          </div>
          
-         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm bg-slate-50">
+         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-lg bg-slate-50">
            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Total Collection</p>
            <p className="text-xl font-bold text-slate-800">₹{totalCollectionAmount.toLocaleString()}</p>
          </div>
-         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm bg-[#003366]/5 border-[#003366]/20">
-           <p className="text-xs text-[#003366]/70 font-medium uppercase tracking-wider mb-1">Total Savings</p>
-           <p className="text-xl font-bold text-[#003366]">₹{totalSavingsAmount.toLocaleString()}</p>
+         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-lg bg-gradient-to-r from-[#374151] to-[#111827]/5 border-[#003366]/20">
+           <p className="text-xs text-[#374151]/70 font-medium uppercase tracking-wider mb-1">Total Savings</p>
+           <p className="text-xl font-bold text-[#374151]">₹{totalSavingsAmount.toLocaleString()}</p>
          </div>
-         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm bg-slate-50">
+         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-lg bg-slate-50">
            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Total Company Rev</p>
            <p className="text-xl font-bold text-slate-800">₹{totalCompanyRevenueAmount.toLocaleString()}</p>
          </div>
-         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm bg-purple-50 border-purple-200">
+         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-lg bg-purple-50 border-purple-200">
            <p className="text-xs text-purple-700 font-medium uppercase tracking-wider mb-1">Total Bonus</p>
            <p className="text-xl font-bold text-purple-700">₹{totalBonusAmount.toLocaleString()}</p>
          </div>
       </div>
 
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4 print:hidden">
+      <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-lg space-y-4 print:hidden">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Report Type</label>
             <select 
               value={reportType} 
               onChange={e => handleReportTypeChange(e.target.value)} 
-              className="border-slate-300 rounded-md shadow-sm focus:border-[#003366] focus:ring-[#003366] text-sm"
+              className="border-slate-300 rounded-md shadow-lg focus:border-[#003366] focus:ring-[#003366] text-sm"
             >
               <option>Daily Collection Report</option>
               <option>Weekly Report</option>
@@ -439,7 +439,7 @@ export default function Reports() {
             <select 
               value={dateFilter} 
               onChange={e => setDateFilter(e.target.value)} 
-              className="border-slate-300 rounded-md shadow-sm focus:border-[#003366] focus:ring-[#003366] text-sm"
+              className="border-slate-300 rounded-md shadow-lg focus:border-[#003366] focus:ring-[#003366] text-sm"
               disabled={reportType === "Pending Members Report" || reportType === "Maturity Report"}
             >
               <option>Today</option>
@@ -457,11 +457,11 @@ export default function Reports() {
             <>
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">Start Date</label>
-                <input type="date" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} className="border-slate-300 rounded-md shadow-sm focus:border-[#003366] focus:ring-[#003366] text-sm" />
+                <input type="date" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} className="border-slate-300 rounded-md shadow-lg focus:border-[#003366] focus:ring-[#003366] text-sm" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">End Date</label>
-                <input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} className="border-slate-300 rounded-md shadow-sm focus:border-[#003366] focus:ring-[#003366] text-sm" />
+                <input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} className="border-slate-300 rounded-md shadow-lg focus:border-[#003366] focus:ring-[#003366] text-sm" />
               </div>
             </>
           )}
@@ -476,17 +476,17 @@ export default function Reports() {
                 placeholder="Search by name or ID..." 
                 value={searchQuery} 
                 onChange={e => setSearchQuery(e.target.value)} 
-                className="pl-9 w-full border-slate-300 rounded-md shadow-sm focus:border-[#003366] focus:ring-[#003366] text-sm" 
+                className="pl-9 w-full border-slate-300 rounded-md shadow-lg focus:border-[#003366] focus:ring-[#003366] text-sm" 
               />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden print:shadow-none print:border-none">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-lg overflow-hidden print:shadow-none print:border-none">
         {/* Print Header that is only visible when printing */}
         <div className="hidden print:block mb-8">
-          <h1 className="text-2xl font-bold text-[#003366]">{settings?.companyName || "SMART SAVE FINANCIAL SYSTEMS"}</h1>
+          <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#374151] to-[#111827]">{settings?.companyName || "SMART SAVE FINANCIAL SYSTEMS"}</h1>
           <h2 className="text-lg font-semibold text-slate-800">{reportType}</h2>
           <div className="text-sm text-slate-500 mt-2">
             <p>Generated Date & Time: {new Date().toLocaleString()}</p>
@@ -494,7 +494,7 @@ export default function Reports() {
           </div>
         </div>
 
-        <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50 print:hidden">
+        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 print:hidden">
           <h2 className="font-bold text-slate-800">{reportType}</h2>
           <div className="flex gap-2">
             <button onClick={exportPDF} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
@@ -511,7 +511,7 @@ export default function Reports() {
         <div className="overflow-x-auto">
           {reportType === "Employee Performance Report" ? (
             <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200 print:bg-transparent print:border-black">
+              <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-100 print:bg-transparent print:border-black">
                  <tr>
                    <th className="px-4 py-3">Employee ID</th>
                    <th className="px-4 py-3">Employee Name</th>
@@ -570,7 +570,7 @@ export default function Reports() {
             </table>
           ) : (
             <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200 print:bg-transparent print:border-black">
+              <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-100 print:bg-transparent print:border-black">
                  <tr>
                    <th className="px-4 py-3">Date</th>
                    <th className="px-4 py-3">Member ID</th>

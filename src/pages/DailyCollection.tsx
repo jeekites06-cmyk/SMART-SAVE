@@ -18,7 +18,8 @@ export default function DailyCollection() {
     updateCollection, 
     deleteCollection, 
     updateMember, 
-    financialSummary 
+    financialSummary,
+    logAudit
   } = useData();
 
   // Search & New Collection Input States
@@ -243,6 +244,11 @@ export default function DailyCollection() {
     }
   }, [totalPages, currentPage]);
 
+  const handleReceiptPDF = (collection: Collection, action: "print" | "download") => {
+    downloadReceiptPDF(collection, settings, action);
+    logAudit(`Receipt ${action === "print" ? "Printed" : "Downloaded"}`, `Receipt ${collection.receiptNo || collection.id} was ${action}ed`, "Daily Collection");
+  };
+
   // Save Edit Action
   const handleOpenEdit = (col: Collection) => {
     if (!isCollectionEditable(col)) {
@@ -341,9 +347,9 @@ export default function DailyCollection() {
       )}
 
       {/* Header with Business Day Close action */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-lg">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Daily Collection</h1>
+          <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#D97706] to-[#78350f]">Daily Collection</h1>
           <p className="text-slate-500 text-sm mt-1">
             Record new deposits and view real-time collection entries.
           </p>
@@ -358,7 +364,7 @@ export default function DailyCollection() {
           {!isBusinessDayClosed && (
             <button
               onClick={handleCloseBusinessDay}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-950 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-950 text-white text-xs font-semibold rounded-lg shadow-lg transition-colors flex items-center gap-1.5"
             >
               <Lock className="w-3.5 h-3.5" />
               Close Business Day
@@ -371,7 +377,7 @@ export default function DailyCollection() {
         {/* Entry Form */}
         <div className="lg:col-span-2">
           {successCollection ? (
-            <div className="bg-white rounded-xl shadow-sm border border-emerald-200 overflow-hidden text-center p-10 animate-in fade-in zoom-in-95">
+            <div className="bg-white rounded-2xl shadow-lg border border-emerald-200 overflow-hidden text-center p-10 animate-in fade-in zoom-in-95">
               <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 className="w-10 h-10" />
               </div>
@@ -391,21 +397,21 @@ export default function DailyCollection() {
                       alert("Member phone number not found.");
                     }
                   }}
-                  className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                  className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 shadow-lg"
                 >
                   <MessageCircle className="w-4 h-4" />
                   Send WhatsApp Receipt
                 </button>
                 <button
-                  onClick={() => downloadReceiptPDF(successCollection, settings, "download")}
-                  className="w-full sm:w-auto px-6 py-2.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
+                  onClick={() => handleReceiptPDF(successCollection, "download")}
+                  className="w-full sm:w-auto px-6 py-2.5 bg-blue-50 text-[#78350f] border border-blue-200 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
                 >
                   <Download className="w-4 h-4" />
                   Download PDF
                 </button>
                 <button
-                  onClick={() => downloadReceiptPDF(successCollection, settings, "print")}
-                  className="w-full sm:w-auto px-6 py-2.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
+                  onClick={() => handleReceiptPDF(successCollection, "print")}
+                  className="w-full sm:w-auto px-6 py-2.5 bg-slate-100 text-slate-700 border border-slate-100 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
                 >
                   <Printer className="w-4 h-4" />
                   Print Receipt
@@ -415,7 +421,7 @@ export default function DailyCollection() {
               <div className="mt-8 pt-8 border-t border-slate-100">
                 <button
                   onClick={handleClear}
-                  className="text-[#003366] font-medium hover:underline flex items-center justify-center gap-2 mx-auto"
+                  className="text-[#D97706] font-medium hover:underline flex items-center justify-center gap-2 mx-auto"
                 >
                   <Plus className="w-4 h-4" />
                   Enter Another Collection
@@ -423,10 +429,10 @@ export default function DailyCollection() {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="p-6 border-b border-slate-200">
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+              <div className="p-6 border-b border-slate-100">
                 <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                  <IndianRupee className="w-5 h-5 text-blue-600" />
+                  <IndianRupee className="w-5 h-5 text-[#D97706]" />
                   New Collection Entry
                 </h2>
               </div>
@@ -464,7 +470,7 @@ export default function DailyCollection() {
                       </div>
                       <button
                         onClick={handleVerify}
-                        className="px-6 bg-[#003366] hover:bg-[#004080] text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                        className="px-6 bg-gradient-to-r from-[#D97706] to-[#78350f] hover:from-[#b45309] hover:to-[#92400e] text-white text-sm font-medium rounded-lg transition-colors shadow-lg"
                       >
                         Verify
                       </button>
@@ -472,7 +478,7 @@ export default function DailyCollection() {
 
                     {/* Member Found Card */}
                     {selectedMember && (
-                      <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-4 animate-in fade-in slide-in-from-top-2">
+                      <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-start gap-4 animate-in fade-in slide-in-from-top-2">
                         <div className="w-12 h-12 rounded-full bg-blue-200 text-blue-800 flex flex-shrink-0 items-center justify-center font-bold text-lg">
                           {selectedMember.name.charAt(0).toUpperCase()}
                         </div>
@@ -559,7 +565,7 @@ export default function DailyCollection() {
               )}
 
               {!isBusinessDayClosed && (
-                <div className="p-6 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
+                <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
                   <button
                     onClick={handleClear}
                     className="px-6 py-2.5 bg-white border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"
@@ -569,7 +575,7 @@ export default function DailyCollection() {
                   <button
                     onClick={handleConfirm}
                     disabled={!selectedMember || !amount}
-                    className="px-6 py-2.5 bg-[#003366] disabled:opacity-50 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-[#004080] transition-colors shadow-sm flex items-center gap-2"
+                    className="px-6 py-2.5 bg-gradient-to-r from-[#D97706] to-[#78350f] disabled:opacity-50 border border-transparent rounded-lg text-sm font-medium text-white hover:from-[#b45309] hover:to-[#92400e] transition-colors shadow-lg flex items-center gap-2"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     Confirm Collection
@@ -582,7 +588,7 @@ export default function DailyCollection() {
 
         {/* Quick Summary / Recent */}
         <div className="space-y-6">
-          <div className="bg-gradient-to-br from-blue-700 to-blue-800 rounded-xl shadow-lg shadow-blue-200 border border-blue-900 p-6 text-white hover:shadow-xl transition-shadow">
+          <div className="bg-gradient-to-br from-blue-700 to-blue-800 rounded-2xl shadow-lg shadow-blue-200 border border-blue-900 p-6 text-white hover:shadow-xl transition-shadow">
             <h3 className="text-blue-200 text-sm font-medium mb-1">
               Today's Total Collection
             </h3>
@@ -602,8 +608,8 @@ export default function DailyCollection() {
             </p>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-0 overflow-hidden">
-            <div className="p-4 border-b border-slate-200 flex items-center gap-2">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-0 overflow-hidden">
+            <div className="p-4 border-b border-slate-100 flex items-center gap-2">
               <History className="w-4 h-4 text-slate-500" />
               <h3 className="font-semibold text-slate-800 text-sm">
                 Recent Entries (Today)
@@ -652,24 +658,24 @@ export default function DailyCollection() {
       </div>
 
       {/* Collection History Panel (Full Width) */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-lg overflow-hidden">
+        <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <History className="w-5 h-5 text-blue-600" />
+            <History className="w-5 h-5 text-[#D97706]" />
             <div>
               <h2 className="text-lg font-bold text-slate-800">Collection History</h2>
               <p className="text-xs text-slate-500">
                 View, filter, edit, and print past transactions
               </p>
             </div>
-            <span className="px-2.5 py-1 text-xs font-semibold bg-slate-100 text-slate-700 rounded-full border border-slate-200">
+            <span className="px-2.5 py-1 text-xs font-semibold bg-slate-100 text-slate-700 rounded-full border border-slate-100">
               {sortedFilteredCollections.length} Records
             </span>
           </div>
         </div>
 
         {/* Filters and Search Bar */}
-        <div className="p-6 bg-slate-50 border-b border-slate-200 space-y-4">
+        <div className="p-6 bg-slate-50 border-b border-slate-100 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search Input */}
             <div className="relative">
@@ -679,7 +685,7 @@ export default function DailyCollection() {
                 placeholder="Search Name, ID, Phone, Receipt..."
                 value={searchQueryHistory}
                 onChange={(e) => setSearchQueryHistory(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366] bg-white transition-all"
+                className="w-full pl-9 pr-4 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366] bg-white transition-all"
               />
               {searchQueryHistory && (
                 <button
@@ -699,7 +705,7 @@ export default function DailyCollection() {
                   setFilterDate(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366] bg-white"
+                className="w-full px-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366] bg-white"
               >
                 <option value="All">All Dates</option>
                 <option value="Today">Today</option>
@@ -718,7 +724,7 @@ export default function DailyCollection() {
                   setFilterStatus(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366] bg-white"
+                className="w-full px-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366] bg-white"
               >
                 <option value="All">All Statuses</option>
                 <option value="Completed">Completed (Paid)</option>
@@ -737,7 +743,7 @@ export default function DailyCollection() {
                   setEndDate("");
                   setCurrentPage(1);
                 }}
-                className="text-[#003366] hover:text-blue-800 text-sm font-semibold flex items-center justify-center gap-1.5 py-2"
+                className="text-[#D97706] hover:text-blue-800 text-sm font-semibold flex items-center justify-center gap-1.5 py-2"
               >
                 <X className="w-4 h-4" />
                 Reset Filters
@@ -747,7 +753,7 @@ export default function DailyCollection() {
 
           {/* Custom Date Range inputs */}
           {filterDate === "Custom" && (
-            <div className="flex flex-col sm:flex-row items-center gap-3 p-3 bg-white rounded-xl border border-slate-200 animate-in slide-in-from-top-2">
+            <div className="flex flex-col sm:flex-row items-center gap-3 p-3 bg-white rounded-2xl border border-slate-100 animate-in slide-in-from-top-2">
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <span className="text-xs font-medium text-slate-500">From:</span>
                 <input
@@ -757,7 +763,7 @@ export default function DailyCollection() {
                     setStartDate(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg outline-none focus:border-[#003366] bg-slate-50"
+                  className="px-3 py-1.5 text-xs border border-slate-100 rounded-lg outline-none focus:border-[#003366] bg-slate-50"
                 />
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -769,7 +775,7 @@ export default function DailyCollection() {
                     setEndDate(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg outline-none focus:border-[#003366] bg-slate-50"
+                  className="px-3 py-1.5 text-xs border border-slate-100 rounded-lg outline-none focus:border-[#003366] bg-slate-50"
                 />
               </div>
             </div>
@@ -780,7 +786,7 @@ export default function DailyCollection() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase">
+              <tr className="bg-slate-50/50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase">
                 <th className="px-6 py-4">Receipt No</th>
                 <th className="px-6 py-4">Date & Time</th>
                 <th className="px-6 py-4">Member Info</th>
@@ -817,7 +823,7 @@ export default function DailyCollection() {
                         <div className="text-xs text-slate-400">{col.memberId}</div>
                       </td>
                       <td className="px-6 py-4 text-xs">
-                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-medium">
+                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-100 font-medium">
                           {col.type}
                         </span>
                       </td>
@@ -852,15 +858,15 @@ export default function DailyCollection() {
                           </button>
                           
                           <button
-                            onClick={() => downloadReceiptPDF(col, settings, "download")}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                            onClick={() => handleReceiptPDF(col, "download")}
+                            className="p-1.5 text-[#D97706] hover:bg-blue-50 rounded-lg transition-all"
                             title="Download PDF"
                           >
                             <Download className="w-4 h-4" />
                           </button>
 
                           <button
-                            onClick={() => downloadReceiptPDF(col, settings, "print")}
+                            onClick={() => handleReceiptPDF(col, "print")}
                             className="p-1.5 text-slate-600 hover:bg-slate-50 rounded-lg transition-all"
                             title="Print Receipt"
                           >
@@ -872,7 +878,7 @@ export default function DailyCollection() {
                             <>
                               <button
                                 onClick={() => handleOpenEdit(col)}
-                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                className="p-1.5 text-[#D97706] hover:bg-blue-50 rounded-lg transition-all"
                                 title="Edit Collection"
                               >
                                 <Edit2 className="w-4 h-4" />
@@ -908,7 +914,7 @@ export default function DailyCollection() {
 
         {/* Pagination Bar */}
         {totalPages > 1 && (
-          <div className="p-6 border-t border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="text-xs text-slate-500 text-center sm:text-left">
               Showing <span className="font-semibold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}</span> to{" "}
               <span className="font-semibold text-slate-700">
@@ -921,7 +927,7 @@ export default function DailyCollection() {
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="p-1.5 border border-slate-200 rounded-lg bg-white disabled:opacity-40 hover:bg-slate-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                className="p-1.5 border border-slate-100 rounded-lg bg-white disabled:opacity-40 hover:bg-slate-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -930,7 +936,7 @@ export default function DailyCollection() {
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer ${currentPage === page ? "bg-[#003366] text-white border-transparent" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
+                  className={`px-3 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer ${currentPage === page ? "bg-gradient-to-r from-[#D97706] to-[#78350f] text-white border-transparent" : "bg-white text-slate-600 border-slate-100 hover:bg-slate-50"}`}
                 >
                   {page}
                 </button>
@@ -939,7 +945,7 @@ export default function DailyCollection() {
               <button
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
-                className="p-1.5 border border-slate-200 rounded-lg bg-white disabled:opacity-40 hover:bg-slate-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                className="p-1.5 border border-slate-100 rounded-lg bg-white disabled:opacity-40 hover:bg-slate-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -951,10 +957,10 @@ export default function DailyCollection() {
       {/* Edit Collection Modal */}
       {editingCollection && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <Edit2 className="w-5 h-5 text-[#003366]" />
+                <Edit2 className="w-5 h-5 text-[#D97706]" />
                 Edit Collection Entry
               </h3>
               <button
@@ -966,7 +972,7 @@ export default function DailyCollection() {
             </div>
 
             <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+              <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 text-xs">
                 <div>
                   <span className="text-slate-400 block uppercase font-semibold">Member Name</span>
                   <span className="text-slate-800 block text-sm font-bold mt-0.5">{editingCollection.memberName}</span>
@@ -1046,7 +1052,7 @@ export default function DailyCollection() {
               </div>
             </div>
 
-            <div className="p-6 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setEditingCollection(null)}
@@ -1057,7 +1063,7 @@ export default function DailyCollection() {
               <button
                 type="button"
                 onClick={handleSaveEdit}
-                className="px-4 py-2 text-sm font-medium text-white bg-[#003366] hover:bg-[#004080] rounded-lg transition-colors shadow-sm"
+                className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-[#D97706] to-[#78350f] hover:from-[#b45309] hover:to-[#92400e] rounded-lg transition-colors shadow-lg"
               >
                 Save Changes
               </button>
@@ -1069,7 +1075,7 @@ export default function DailyCollection() {
       {/* Delete Collection Modal */}
       {deletingCollection && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6">
               <div className="flex items-center gap-4 text-rose-600 mb-4">
                 <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
@@ -1112,7 +1118,7 @@ export default function DailyCollection() {
                 <button
                   type="button"
                   onClick={handleConfirmDelete}
-                  className="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-lg hover:bg-rose-700 transition-colors shadow-sm"
+                  className="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-lg hover:bg-rose-700 transition-colors shadow-lg"
                 >
                   Delete Permanently
                 </button>

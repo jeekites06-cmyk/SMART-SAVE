@@ -8,7 +8,7 @@ import { calculateCollectionBreakdown } from "../utils/finance";
 import { generateWhatsAppMessage, openWhatsApp, downloadReceiptPDF } from "../utils/whatsapp";
 
 export default function Receipts() {
-  const { collections, settings, members } = useData();
+  const { collections, settings, members, logAudit } = useData();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("");
@@ -39,22 +39,23 @@ export default function Receipts() {
 
   const generatePDF = (receipt: Collection, action: "print" | "download") => {
     downloadReceiptPDF(receipt, settings, action);
+    logAudit(`Receipt ${action === "print" ? "Printed" : "Downloaded"}`, `Receipt ${receipt.receiptNo || receipt.id} was ${action}ed`, "Daily Collection");
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Receipts</h1>
+          <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#0284C7] to-[#0c4a6e]">Receipts</h1>
           <p className="text-slate-500 text-sm mt-1">
             View, print, and manage transaction receipts.
           </p>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-slate-200 overflow-hidden flex flex-col">
+      <div className="bg-white rounded-2xl shadow-lg hover:shadow-md transition-shadow border border-slate-100 overflow-hidden flex flex-col">
         {/* Toolbar */}
-        <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-50">
+        <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-50">
           <div className="relative w-full sm:w-96">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -82,7 +83,7 @@ export default function Receipts() {
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-white border-b border-slate-200 text-slate-600 font-medium">
+            <thead className="bg-white border-b border-slate-100 text-slate-600 font-medium">
               <tr>
                 <th className="px-6 py-4 whitespace-nowrap">Receipt No.</th>
                 <th className="px-6 py-4 whitespace-nowrap">Date</th>
@@ -102,7 +103,7 @@ export default function Receipts() {
                     className="hover:bg-slate-50 transition-colors group"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-semibold text-[#003366] flex items-center gap-2">
+                      <div className="font-semibold text-[#0284C7] flex items-center gap-2">
                         <FileText className="w-4 h-4 text-slate-400" />
                         {receipt.receiptNo || receipt.id}
                       </div>
@@ -142,7 +143,7 @@ export default function Receipts() {
                         </button>
                         <button
                           onClick={() => generatePDF(receipt, "download")}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors border border-transparent hover:border-blue-200"
+                          className="p-1.5 text-[#0284C7] hover:bg-blue-50 rounded-md transition-colors border border-transparent hover:border-blue-200"
                           title="Download PDF"
                         >
                           <Download className="w-4 h-4" />
@@ -173,7 +174,7 @@ export default function Receipts() {
         </div>
 
         {/* Pagination */}
-        <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50">
+        <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50">
           <p className="text-sm text-slate-500">
             Showing{" "}
             <span className="font-medium text-slate-700">
@@ -197,7 +198,7 @@ export default function Receipts() {
             >
               Previous
             </button>
-            <button className="px-3 py-1 border border-blue-600 bg-blue-50 rounded-md text-sm text-blue-700 font-medium">
+            <button className="px-3 py-1 border border-blue-600 bg-blue-50 rounded-md text-sm text-[#0c4a6e] font-medium">
               {currentPage}
             </button>
             <button

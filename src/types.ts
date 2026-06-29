@@ -41,6 +41,10 @@ export interface Member {
   registrationStatus?: string; // e.g. "Verified"
   planUnits?: number;
   photo?: string;
+  password?: string;
+  accountStatus?: "Active" | "Inactive" | "Locked" | "Disabled";
+  failedLoginAttempts?: number;
+  lockUntil?: number;
 }
 
 export interface Collection {
@@ -75,6 +79,9 @@ export interface Employee {
   joinDate: string;
   status: "Active" | "Inactive";
   photo?: string;
+  accountStatus?: "Active" | "Inactive" | "Locked" | "Disabled";
+  failedLoginAttempts?: number;
+  lockUntil?: number;
 }
 
 export interface AttendanceRecord {
@@ -88,10 +95,15 @@ export interface AttendanceRecord {
 
 export interface LoginHistoryRecord {
   id: string;
-  employeeId: string;
-  timestamp: string;
+  employeeId?: string;
+  username: string;
+  role: string;
+  loginTime: string;
+  logoutTime?: string;
+  status: "Successful" | "Failed";
   ipAddress?: string;
   device?: string;
+  timestamp: string;
 }
 
 export interface FinancialSummary {
@@ -116,7 +128,10 @@ export interface CompanySettings {
   supportPhone: string;
   adminPassword?: string;
   adminPhoto?: string;
-  
+  adminName?: string;
+  adminPhone?: string;
+  adminEmail?: string;
+
   registrationFee?: string;
   dailyDeposit?: string;
   memberSavings?: string;
@@ -125,7 +140,7 @@ export interface CompanySettings {
   companyProfitPercentage?: string;
   planDuration?: string;
   employeeCommissionPerCollection?: string;
-  
+
   // legacy
   defaultDailyAmount?: string;
   companyCommission?: string;
@@ -161,6 +176,12 @@ export interface CompanySettings {
   emailNotificationsEnabled?: boolean;
   paymentReminderDays?: string;
   maturityReminderDays?: string;
+
+  // Security settings
+  sessionTimeoutValue?: string; // "15", "30", "60", "Never"
+  autoLogoutEnabled?: boolean;
+  logoutOnBrowserClose?: boolean;
+  maxFailedLoginAttempts?: number;
 }
 
 export interface CommissionPayment {
@@ -181,6 +202,12 @@ export interface AuditLog {
   action: string;
   details: string;
   timestamp: string;
+  username?: string;
+  role?: string;
+  module?: string;
+  status?: string;
+  ipAddress?: string;
+  device?: string;
 }
 
 export interface ReminderHistoryItem {
@@ -191,4 +218,3 @@ export interface ReminderHistoryItem {
   dueAmount: number;
   status: string;
 }
-

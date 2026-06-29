@@ -109,8 +109,8 @@ export default function Reminders() {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <Bell className="w-6 h-6 text-blue-600" /> Reminder Center
+          <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#E11D48] to-[#881337] flex items-center gap-2">
+            <Bell className="w-6 h-6 text-[#E11D48]" /> Reminder Center
           </h1>
           <p className="text-slate-500 text-sm mt-1">
             Track daily member payment status, manage dues, and view log history.
@@ -118,12 +118,12 @@ export default function Reminders() {
         </div>
         
         {/* Navigation Tabs */}
-        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-100">
           <button
             onClick={() => setActiveTab("due-list")}
             className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === "due-list"
-                ? "bg-white text-blue-700 shadow-sm"
+                ? "bg-white text-[#881337] shadow-lg"
                 : "text-slate-600 hover:text-slate-800"
             }`}
           >
@@ -133,7 +133,7 @@ export default function Reminders() {
             onClick={() => setActiveTab("history")}
             className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === "history"
-                ? "bg-white text-blue-700 shadow-sm"
+                ? "bg-white text-[#881337] shadow-lg"
                 : "text-slate-600 hover:text-slate-800"
             }`}
           >
@@ -149,7 +149,7 @@ export default function Reminders() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl flex items-center gap-3 shadow-sm text-sm"
+            className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl flex items-center gap-3 shadow-lg text-sm"
           >
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
             <span className="font-medium">{successMessage}</span>
@@ -160,8 +160,8 @@ export default function Reminders() {
       {/* Reminder Overview Dashboard Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Due Members */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex items-center gap-4">
-          <div className="p-3.5 bg-rose-50 text-rose-600 rounded-xl shrink-0">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-lg hover:shadow-md transition-shadow flex items-center gap-4">
+          <div className="p-3.5 bg-rose-50 text-rose-600 rounded-2xl shrink-0">
             <Users className="w-6 h-6" />
           </div>
           <div>
@@ -171,8 +171,8 @@ export default function Reminders() {
         </div>
 
         {/* Card 2: Today's Due Amount */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex items-center gap-4">
-          <div className="p-3.5 bg-amber-50 text-amber-600 rounded-xl shrink-0">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-lg hover:shadow-md transition-shadow flex items-center gap-4">
+          <div className="p-3.5 bg-amber-50 text-amber-600 rounded-2xl shrink-0">
             <Wallet className="w-6 h-6" />
           </div>
           <div>
@@ -182,8 +182,8 @@ export default function Reminders() {
         </div>
 
         {/* Card 3: Today's Paid Members */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex items-center gap-4">
-          <div className="p-3.5 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-lg hover:shadow-md transition-shadow flex items-center gap-4">
+          <div className="p-3.5 bg-emerald-50 text-emerald-600 rounded-2xl shrink-0">
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <div>
@@ -193,8 +193,8 @@ export default function Reminders() {
         </div>
 
         {/* Card 4: Today's Pending Members */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex items-center gap-4">
-          <div className="p-3.5 bg-slate-100 text-slate-500 rounded-xl shrink-0">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-lg hover:shadow-md transition-shadow flex items-center gap-4">
+          <div className="p-3.5 bg-slate-100 text-slate-500 rounded-2xl shrink-0">
             <Clock className="w-6 h-6" />
           </div>
           <div>
@@ -205,7 +205,7 @@ export default function Reminders() {
       </div>
 
       {activeTab === "due-list" ? (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-lg overflow-hidden">
           {/* Filters and Search Bar */}
           <div className="p-5 border-b border-slate-150 flex flex-col lg:flex-row gap-4 justify-between bg-slate-50/50">
             {/* Search Box */}
@@ -215,7 +215,7 @@ export default function Reminders() {
                 placeholder="Search by Name, Member ID or Mobile..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-600 focus:bg-white bg-slate-50/50 transition-all font-medium"
+                className="w-full pl-10 pr-4 py-2 border border-slate-100 rounded-2xl text-sm focus:outline-none focus:border-blue-600 focus:bg-white bg-slate-50/50 transition-all font-medium"
               />
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
             </div>
@@ -231,7 +231,7 @@ export default function Reminders() {
                   onClick={() => setStatusFilter(filterName)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                     statusFilter === filterName
-                      ? "bg-blue-600 text-white shadow-sm"
+                      ? "bg-[#E11D48] text-white shadow-lg"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   }`}
                 >
@@ -315,7 +315,7 @@ export default function Reminders() {
                           {dueAmount > 0 ? (
                             <button
                               onClick={() => handleSendReminder(item)}
-                              className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all rounded-lg text-xs font-bold inline-flex items-center gap-1 cursor-pointer border border-blue-200"
+                              className="px-3 py-1.5 bg-blue-50 text-[#E11D48] hover:bg-[#E11D48] hover:text-white transition-all rounded-lg text-xs font-bold inline-flex items-center gap-1 cursor-pointer border border-blue-200"
                             >
                               <Send className="w-3 h-3" /> Record Reminder
                             </button>
@@ -340,10 +340,10 @@ export default function Reminders() {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-lg overflow-hidden">
           <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
             <h3 className="font-bold text-slate-800 flex items-center gap-2">
-              <History className="w-4 h-4 text-blue-600" /> Reminder Logs
+              <History className="w-4 h-4 text-[#E11D48]" /> Reminder Logs
             </h3>
             <span className="text-xs bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full font-bold">
               {reminderHistory.length} Logged Transactions

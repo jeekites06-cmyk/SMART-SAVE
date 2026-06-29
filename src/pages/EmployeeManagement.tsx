@@ -25,14 +25,17 @@ import {
   History,
   Check,
   Camera,
+  KeyRound,
 } from "lucide-react";
 import { useData } from "../context/DataContext";
+import { useAuth } from "../context/AuthContext";
 import { Employee } from "../types";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 
 export default function EmployeeManagement() {
+  const { user } = useAuth();
   const {
     employees,
     collections,
@@ -45,6 +48,8 @@ export default function EmployeeManagement() {
     markAttendance,
     commissionPayments,
     settings,
+    updateSettings,
+    logAudit,
   } = useData();
 
   // Search and Filter State
@@ -52,6 +57,70 @@ export default function EmployeeManagement() {
   const [filterBranch, setFilterBranch] = useState("All Branches");
   const [filterStatus, setFilterStatus] = useState("All Status");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  
+  // Admin Reset Password State
+  const [resetPasswordFor, setResetPasswordFor] = useState<{ id: string; name: string } | null>(null);
+  const [adminPasswordInput, setAdminPasswordInput] = useState("");
+  const [newPasswordInput, setNewPasswordInput] = useState("");
+  const [confirmNewPasswordInput, setConfirmNewPasswordInput] = useState("");
+  const [resetPasswordError, setResetPasswordError] = useState("");
+
+  const handleAdminResetPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetPasswordError("");
+
+    if (!resetPasswordFor) return;
+
+    if (adminPasswordInput !== (settings?.adminPassword || "Ani@2024")) {
+      setResetPasswordError("Incorrect Admin Password.");
+      return;
+    }
+
+    if (newPasswordInput !== confirmNewPasswordInput) {
+      setResetPasswordError("New passwords do not match.");
+      return;
+    }
+
+    const minLength = /.{8,}/;
+    const hasUpper = /[A-Z]/;
+    const hasLower = /[a-z]/;
+    const hasNumber = /[0-9]/;
+    const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/;
+    
+    if (!minLength.test(newPasswordInput)) {
+      setResetPasswordError("Minimum 8 Characters");
+      return;
+    }
+    if (!hasUpper.test(newPasswordInput)) {
+      setResetPasswordError("At least one uppercase letter");
+      return;
+    }
+    if (!hasLower.test(newPasswordInput)) {
+      setResetPasswordError("At least one lowercase letter");
+      return;
+    }
+    if (!hasNumber.test(newPasswordInput)) {
+      setResetPasswordError("At least one number");
+      return;
+    }
+    if (!hasSpecial.test(newPasswordInput)) {
+      setResetPasswordError("At least one special character");
+      return;
+    }
+
+    updateEmployee(resetPasswordFor.id, { password: newPasswordInput });
+    if (resetPasswordFor.id === "ADMIN001") {
+      updateSettings({ adminPassword: newPasswordInput });
+      logAudit("Password Reset", `Super Admin password reset by Admin`);
+    } else {
+      logAudit("Password Reset", `Password reset for employee ${resetPasswordFor.name} by Super Admin`);
+    }
+    showNotification(`Password reset successfully for ${resetPasswordFor.name}.`);
+    setResetPasswordFor(null);
+    setAdminPasswordInput("");
+    setNewPasswordInput("");
+    setConfirmNewPasswordInput("");
+  };
 
   // Modals
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -413,12 +482,12 @@ export default function EmployeeManagement() {
           {viewingEmployee ? (
             <button
               onClick={() => setViewingEmployee(null)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-700 hover:text-[#003366] transition-colors mb-2 bg-slate-100 hover:bg-slate-200 rounded-lg"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-700 hover:text-[#EA580C] transition-colors mb-2 bg-slate-100 hover:bg-slate-200 rounded-lg"
             >
               ← Back to Employee List
             </button>
           ) : null}
-          <h1 className="text-2xl font-bold text-slate-800">
+          <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#EA580C] to-[#9a3412]">
             {viewingEmployee ? `Employee Profile: ${viewingEmployee.name}` : "Employee Management"}
           </h1>
           <p className="text-slate-500 text-sm mt-1">
@@ -431,7 +500,7 @@ export default function EmployeeManagement() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={exportListPDF}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-100 rounded-lg hover:bg-slate-50 transition-colors"
             >
               <Download className="w-4 h-4 text-slate-500" /> PDF
             </button>
@@ -443,13 +512,13 @@ export default function EmployeeManagement() {
             </button>
             <button
               onClick={printList}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-100 rounded-lg hover:bg-slate-50 transition-colors"
             >
               <Printer className="w-4 h-4 text-slate-500" /> Print
             </button>
             <button
               onClick={openAddModal}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-[#003366] rounded-lg hover:bg-[#002244] shadow transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-[#EA580C] to-[#9a3412] rounded-lg hover:bg-[#002244] shadow transition-colors"
             >
               <Plus className="w-4 h-4" /> Add Employee
             </button>
@@ -460,16 +529,16 @@ export default function EmployeeManagement() {
       {/* Overall Statistics Dashboard (only shown on List View) */}
       {!viewingEmployee && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-lg flex items-center justify-between">
             <div>
               <span className="text-xs text-slate-500 block uppercase font-bold tracking-wider">Total Employees</span>
               <span className="text-2xl font-black text-slate-800 mt-1 block">{overallStats.totalCount}</span>
             </div>
-            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-lg">
+            <div className="w-12 h-12 bg-blue-50 text-[#EA580C] rounded-lg flex items-center justify-center text-lg">
               👥
             </div>
           </div>
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-lg flex items-center justify-between">
             <div>
               <span className="text-xs text-slate-500 block uppercase font-bold tracking-wider">Active Collectors</span>
               <span className="text-2xl font-black text-emerald-600 mt-1 block">{overallStats.activeCount}</span>
@@ -478,16 +547,16 @@ export default function EmployeeManagement() {
               ⚡
             </div>
           </div>
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-lg flex items-center justify-between">
             <div>
               <span className="text-xs text-slate-500 block uppercase font-bold tracking-wider">Total Collections</span>
-              <span className="text-2xl font-black text-[#003366] mt-1 block">₹{overallStats.totalCollsAmount.toLocaleString()}</span>
+              <span className="text-2xl font-black text-[#EA580C] mt-1 block">₹{overallStats.totalCollsAmount.toLocaleString()}</span>
             </div>
             <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-lg">
               ₹
             </div>
           </div>
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-lg flex items-center justify-between">
             <div>
               <span className="text-xs text-slate-500 block uppercase font-bold tracking-wider">Commissions</span>
               <span className="text-2xl font-black text-amber-600 mt-1 block">₹{overallStats.totalCommissions.toLocaleString()}</span>
@@ -501,7 +570,7 @@ export default function EmployeeManagement() {
 
       {/* Search and Filter Bar (only shown on List View) */}
       {!viewingEmployee && (
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4 print:hidden">
+        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-lg grid grid-cols-1 md:grid-cols-3 gap-4 print:hidden">
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
             <input
@@ -509,7 +578,7 @@ export default function EmployeeManagement() {
               placeholder="Search Name, ID or Mobile Number..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
+              className="w-full pl-9 pr-8 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366]"
             />
             {searchQuery && (
               <button
@@ -524,7 +593,7 @@ export default function EmployeeManagement() {
             <select
               value={filterBranch}
               onChange={(e) => setFilterBranch(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
+              className="w-full px-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366]"
             >
               {branches.map((b) => (
                 <option key={b} value={b}>
@@ -537,7 +606,7 @@ export default function EmployeeManagement() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
+              className="w-full px-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366]"
             >
               <option value="All Status">All Employees</option>
               <option value="Active">Active</option>
@@ -551,7 +620,7 @@ export default function EmployeeManagement() {
       <div className="grid grid-cols-1 gap-6">
         {/* Employee List Panel (Full Width) */}
         {!viewingEmployee ? (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden col-span-1">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-lg overflow-hidden col-span-1">
             <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
               <h3 className="font-bold text-slate-800">
                 Employee Register ({filteredEmployees.length})
@@ -588,7 +657,7 @@ export default function EmployeeManagement() {
                           </td>
                           <td className="px-4 py-3.5 align-middle font-semibold text-slate-900">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-full border border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center font-bold text-slate-600 text-xs shrink-0">
+                              <div className="w-8 h-8 rounded-full border border-slate-100 overflow-hidden bg-slate-50 flex items-center justify-center font-bold text-slate-600 text-xs shrink-0">
                                 {emp.photo ? (
                                   <img 
                                     src={emp.photo} 
@@ -643,11 +712,20 @@ export default function EmployeeManagement() {
                               </button>
                               <button
                                 onClick={() => openEditModal(emp)}
-                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                                className="p-1.5 text-[#EA580C] hover:bg-blue-50 rounded-md transition-colors"
                                 title="Edit Details"
                               >
                                 <Edit className="w-4 h-4" />
                               </button>
+                              {user?.role === "Super Admin" && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setResetPasswordFor({ id: emp.id, name: emp.name }); }}
+                                  className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                                  title="Reset Password"
+                                >
+                                  <KeyRound className="w-4 h-4" />
+                                </button>
+                              )}
                               <button
                                 onClick={() => {
                                   setAttendanceModalEmp(emp);
@@ -657,13 +735,15 @@ export default function EmployeeManagement() {
                               >
                                 <Calendar className="w-4 h-4" />
                               </button>
-                              <button
-                                onClick={() => handleDelete(emp.id)}
-                                className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                                title="Delete Record"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              {user?.role === "Super Admin" && (
+                                <button
+                                  onClick={() => handleDelete(emp.id)}
+                                  className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                  title="Delete Record"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -682,11 +762,11 @@ export default function EmployeeManagement() {
           </div>
         ) : (
           /* Profile Details Panel (Shown when an employee is selected, takes full screen) */
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col col-span-1 animate-in fade-in slide-in-from-bottom-2">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-lg overflow-hidden flex flex-col col-span-1 animate-in fade-in slide-in-from-bottom-2">
             {/* Profile Header */}
             <div className="p-6 bg-slate-900 text-white flex justify-between items-start">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-xl text-white shadow-md overflow-hidden shrink-0">
+                <div className="w-14 h-14 bg-[#EA580C] rounded-2xl flex items-center justify-center font-bold text-xl text-white shadow-md overflow-hidden shrink-0">
                   {viewingEmployee.photo ? (
                     <img 
                       src={viewingEmployee.photo} 
@@ -753,7 +833,7 @@ export default function EmployeeManagement() {
                       </div>
                       <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-center animate-in zoom-in-95">
                         <span className="text-[10px] text-slate-500 block uppercase font-bold">Total Collections</span>
-                        <span className="text-base font-bold text-[#003366] mt-1 block">₹{m.totalCollectionAmount.toLocaleString()}</span>
+                        <span className="text-base font-bold text-[#EA580C] mt-1 block">₹{m.totalCollectionAmount.toLocaleString()}</span>
                       </div>
                       <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-center animate-in zoom-in-95">
                         <span className="text-[10px] text-slate-500 block uppercase font-bold">Total Commission</span>
@@ -919,7 +999,7 @@ export default function EmployeeManagement() {
       {/* Attendance Fast Action Modal */}
       {attendanceModalEmp && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
-          <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-sm w-full overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-sm w-full overflow-hidden">
             <div className="p-4 bg-slate-50 border-b flex justify-between items-center">
               <h3 className="font-bold text-slate-800 text-sm">Attendance status: {attendanceModalEmp.name}</h3>
               <button onClick={() => setAttendanceModalEmp(null)} className="text-slate-400 hover:text-slate-600">
@@ -937,7 +1017,7 @@ export default function EmployeeManagement() {
                       setAttendanceModalEmp(null);
                       showNotification(`Attendance marked as ${st} for ${attendanceModalEmp.name}`);
                     }}
-                    className="py-2.5 px-3 rounded-lg border border-slate-200 text-xs font-semibold hover:border-blue-600 hover:bg-blue-50 text-slate-700 transition-colors"
+                    className="py-2.5 px-3 rounded-lg border border-slate-100 text-xs font-semibold hover:border-blue-600 hover:bg-blue-50 text-slate-700 transition-colors"
                   >
                     {st}
                   </button>
@@ -951,7 +1031,7 @@ export default function EmployeeManagement() {
       {/* Add / Edit Form Modal */}
       {isFormModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-2xl w-full my-8 overflow-hidden animate-in zoom-in-95">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-2xl w-full my-8 overflow-hidden animate-in zoom-in-95">
             <div className="p-4 bg-slate-50 border-b flex justify-between items-center sticky top-0 z-10">
               <h3 className="font-bold text-slate-800">
                 {editingEmployee ? `Edit Employee - ${editingEmployee.id}` : "Register New Employee"}
@@ -974,7 +1054,7 @@ export default function EmployeeManagement() {
                   <div className="md:col-span-2">
                     <div className="flex flex-col md:flex-row items-center gap-4 border border-slate-100 p-3 rounded-lg bg-slate-50/50">
                       <div className="relative shrink-0">
-                        <div className="w-20 h-20 rounded-full border border-slate-200 overflow-hidden bg-white flex items-center justify-center shadow-xs">
+                        <div className="w-20 h-20 rounded-full border border-slate-100 overflow-hidden bg-white flex items-center justify-center shadow-xs">
                           {formData.photo ? (
                             <img 
                               src={formData.photo} 
@@ -986,7 +1066,7 @@ export default function EmployeeManagement() {
                             <User className="w-8 h-8 text-slate-300" />
                           )}
                         </div>
-                        <label className="absolute -bottom-1 -right-1 bg-[#003366] text-white p-1.5 rounded-full cursor-pointer hover:bg-blue-800 transition-colors shadow-xs">
+                        <label className="absolute -bottom-1 -right-1 bg-gradient-to-r from-[#EA580C] to-[#9a3412] text-white p-1.5 rounded-full cursor-pointer hover:bg-blue-800 transition-colors shadow-xs">
                           <Camera className="w-3.5 h-3.5" />
                           <input 
                             type="file" 
@@ -1040,7 +1120,7 @@ export default function EmployeeManagement() {
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         placeholder="John Doe"
-                        className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
+                        className="w-full pl-9 pr-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366]"
                       />
                     </div>
                   </div>
@@ -1054,7 +1134,7 @@ export default function EmployeeManagement() {
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                         placeholder="e.g. 9876543210"
-                        className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
+                        className="w-full pl-9 pr-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366]"
                       />
                     </div>
                   </div>
@@ -1067,7 +1147,7 @@ export default function EmployeeManagement() {
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         placeholder="john@example.com"
-                        className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
+                        className="w-full pl-9 pr-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366]"
                       />
                     </div>
                   </div>
@@ -1080,7 +1160,7 @@ export default function EmployeeManagement() {
                         value={formData.aadhaar}
                         onChange={(e) => setFormData({ ...formData, aadhaar: e.target.value })}
                         placeholder="12-digit Aadhaar No"
-                        className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
+                        className="w-full pl-9 pr-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366]"
                       />
                     </div>
                   </div>
@@ -1093,7 +1173,7 @@ export default function EmployeeManagement() {
                         value={formData.address}
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                         placeholder="Street Address, City, State"
-                        className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
+                        className="w-full pl-9 pr-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366]"
                       />
                     </div>
                   </div>
@@ -1113,7 +1193,7 @@ export default function EmployeeManagement() {
                       value={formData.designation}
                       onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
                       placeholder="e.g. Collection Agent"
-                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
+                      className="w-full px-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366]"
                     />
                   </div>
                   <div>
@@ -1123,7 +1203,7 @@ export default function EmployeeManagement() {
                       value={formData.branch}
                       onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
                       placeholder="e.g. Noida Sector 15"
-                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
+                      className="w-full px-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366]"
                     />
                   </div>
                   <div>
@@ -1131,12 +1211,27 @@ export default function EmployeeManagement() {
                     <select
                       value={formData.status}
                       onChange={(e) => setFormData({ ...formData, status: e.target.value as "Active" | "Inactive" })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
+                      className="w-full px-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366]"
                     >
                       <option value="Active">Active</option>
                       <option value="Inactive">Inactive</option>
                     </select>
                   </div>
+                  {user?.role === "Super Admin" && (
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Account Access Status (Security)</label>
+                      <select
+                        value={formData.accountStatus || "Active"}
+                        onChange={(e) => setFormData({ ...formData, accountStatus: e.target.value as "Active" | "Inactive" | "Locked" | "Disabled" })}
+                        className="w-full px-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366]"
+                      >
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                        <option value="Locked">Locked</option>
+                        <option value="Disabled">Disabled</option>
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-xs font-medium text-slate-700 mb-1">Username *</label>
                     <div className="relative">
@@ -1147,7 +1242,7 @@ export default function EmployeeManagement() {
                         value={formData.username}
                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                         placeholder="Login Username"
-                        className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
+                        className="w-full pl-9 pr-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366]"
                       />
                     </div>
                   </div>
@@ -1160,7 +1255,7 @@ export default function EmployeeManagement() {
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                         placeholder="Leave blank to keep same"
-                        className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
+                        className="w-full pl-9 pr-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366]"
                       />
                     </div>
                   </div>
@@ -1170,7 +1265,7 @@ export default function EmployeeManagement() {
                       type="date"
                       value={formData.joinDate}
                       onChange={(e) => setFormData({ ...formData, joinDate: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
+                      className="w-full px-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366]"
                     />
                   </div>
                 </div>
@@ -1191,7 +1286,7 @@ export default function EmployeeManagement() {
                         value={formData.dailyTarget}
                         onChange={(e) => setFormData({ ...formData, dailyTarget: e.target.value })}
                         placeholder="15000"
-                        className="w-full pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
+                        className="w-full pl-8 pr-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366]"
                       />
                     </div>
                   </div>
@@ -1204,7 +1299,7 @@ export default function EmployeeManagement() {
                         value={formData.monthlySalary}
                         onChange={(e) => setFormData({ ...formData, monthlySalary: e.target.value })}
                         placeholder="25000"
-                        className="w-full pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
+                        className="w-full pl-8 pr-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366]"
                       />
                     </div>
                   </div>
@@ -1217,7 +1312,7 @@ export default function EmployeeManagement() {
                         value={formData.commissionPercentage}
                         onChange={(e) => setFormData({ ...formData, commissionPercentage: e.target.value })}
                         placeholder="5"
-                        className="w-full pr-8 pl-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
+                        className="w-full pr-8 pl-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366]"
                       />
                       <Percent className="w-4 h-4 text-slate-400 absolute right-3 top-3" />
                     </div>
@@ -1232,7 +1327,7 @@ export default function EmployeeManagement() {
                         value={formData.registrationCommission}
                         onChange={(e) => setFormData({ ...formData, registrationCommission: e.target.value })}
                         placeholder="100"
-                        className="w-full pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-[#003366]"
+                        className="w-full pl-8 pr-3 py-2 text-sm border border-slate-100 rounded-lg outline-none focus:border-[#003366]"
                       />
                     </div>
                   </div>
@@ -1244,13 +1339,13 @@ export default function EmployeeManagement() {
                 <button
                   type="button"
                   onClick={() => setIsFormModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
+                  className="px-4 py-2 border border-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-[#003366] text-white rounded-lg text-sm font-medium hover:bg-[#002244] shadow transition-colors"
+                  className="px-6 py-2 bg-gradient-to-r from-[#EA580C] to-[#9a3412] text-white rounded-lg text-sm font-medium hover:bg-[#002244] shadow transition-colors"
                 >
                   Save Employee
                 </button>
@@ -1263,7 +1358,7 @@ export default function EmployeeManagement() {
       {/* Delete Confirmation Modal */}
       {deleteConfirmId && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl max-w-md w-full shadow-xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6">
               <div className="flex items-center gap-4 text-red-600 mb-4">
                 <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center shrink-0">
@@ -1288,11 +1383,80 @@ export default function EmployeeManagement() {
                 <button
                   type="button"
                   onClick={confirmDelete}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors shadow-lg"
                 >
                   Delete
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Reset Password Modal */}
+      {resetPasswordFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Reset Password</h3>
+              <p className="text-sm text-slate-500 mb-6">Resetting password for {resetPasswordFor.name}</p>
+              
+              {resetPasswordError && (
+                <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg border border-red-100 mb-4 text-center">
+                  {resetPasswordError}
+                </div>
+              )}
+              
+              <form onSubmit={handleAdminResetPassword} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">Current Admin Password</label>
+                  <input
+                    type="password"
+                    required
+                    value={adminPasswordInput}
+                    onChange={(e) => setAdminPasswordInput(e.target.value)}
+                    className="mt-1 focus:ring-[#003366] focus:border-[#003366] block w-full sm:text-sm border-slate-300 rounded-lg py-2.5 border bg-slate-50 outline-none"
+                    placeholder="Enter your admin password"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">New Password</label>
+                  <input
+                    type="text"
+                    required
+                    value={newPasswordInput}
+                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                    className="mt-1 focus:ring-[#003366] focus:border-[#003366] block w-full sm:text-sm border-slate-300 rounded-lg py-2.5 border bg-slate-50 outline-none"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special character.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">Confirm New Password</label>
+                  <input
+                    type="text"
+                    required
+                    value={confirmNewPasswordInput}
+                    onChange={(e) => setConfirmNewPasswordInput(e.target.value)}
+                    className="mt-1 focus:ring-[#003366] focus:border-[#003366] block w-full sm:text-sm border-slate-300 rounded-lg py-2.5 border bg-slate-50 outline-none"
+                  />
+                </div>
+                
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setResetPasswordFor(null)}
+                    className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-[#EA580C] to-[#9a3412] rounded-lg hover:from-[#c2410c] hover:to-[#7c2d12] transition-colors shadow-lg"
+                  >
+                    Reset Password
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

@@ -491,7 +491,7 @@ export default function Commissions() {
       {/* Header section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">SMART SAVE Commissions</h1>
+          <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#9333EA] to-[#581c87]">SMART SAVE Commissions</h1>
           <p className="text-slate-500 text-sm mt-1">
             Track daily collection incentives, manage premium collector performance, and disburse secure incentive payouts.
           </p>
@@ -504,7 +504,7 @@ export default function Commissions() {
                 setPayEmpId("");
                 setPayAmount("");
               }}
-              className="bg-[#003366] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[#004080] transition-colors shadow-sm flex items-center gap-2"
+              className="bg-gradient-to-r from-[#9333EA] to-[#581c87] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:from-[#7e22ce] hover:to-[#4c1d95] transition-colors shadow-lg flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               Record Payout
@@ -515,7 +515,7 @@ export default function Commissions() {
 
       {/* Success Notification Alert banner */}
       {successMsg && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg flex items-center gap-2.5 shadow-sm animate-in fade-in slide-in-from-top-4 print:hidden">
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg flex items-center gap-2.5 shadow-lg animate-in fade-in slide-in-from-top-4 print:hidden">
           <CheckCircle className="w-5 h-5 text-emerald-600" />
           <span className="text-sm font-medium">{successMsg}</span>
         </div>
@@ -523,8 +523,8 @@ export default function Commissions() {
 
       {/* Record Payout Form Modal/Panel */}
       {showPayForm && isAdmin && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden animate-in fade-in duration-200 print:hidden">
-          <div className="bg-[#003366] px-6 py-4 text-white flex justify-between items-center">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-lg overflow-hidden animate-in fade-in duration-200 print:hidden">
+          <div className="bg-gradient-to-r from-[#9333EA] to-[#581c87] px-6 py-4 text-white flex justify-between items-center">
             <div>
               <h3 className="font-bold text-base">Record Commission Payout</h3>
               <p className="text-xs text-blue-100 mt-0.5">Disburse pending collection commissions to employee profiles securely.</p>
@@ -551,7 +551,7 @@ export default function Commissions() {
                     setPayAmount(Math.max(0, found.pendingCommission).toString());
                   }
                 }}
-                className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
               >
                 <option value="">-- Choose Employee --</option>
                 {employees.map((emp) => (
@@ -569,7 +569,7 @@ export default function Commissions() {
                 type="month"
                 value={payPeriod}
                 onChange={(e) => setPayPeriod(e.target.value)}
-                className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
               />
               <span className="text-[10px] text-slate-400 mt-0.5 block">Cycle to pay (e.g. {formatPeriod(payPeriod)})</span>
             </div>
@@ -584,7 +584,7 @@ export default function Commissions() {
                 value={payAmount}
                 onChange={(e) => setPayAmount(e.target.value)}
                 placeholder="e.g. 250"
-                className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
               />
             </div>
 
@@ -594,7 +594,7 @@ export default function Commissions() {
                 required
                 value={payStatus}
                 onChange={(e) => setPayStatus(e.target.value as "Paid" | "Pending")}
-                className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
               >
                 <option value="Paid">Paid (Mark Disbursed)</option>
                 <option value="Pending">Pending (Reserve)</option>
@@ -608,7 +608,7 @@ export default function Commissions() {
                 type="date"
                 value={payDate}
                 onChange={(e) => setPayDate(e.target.value)}
-                className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
               />
             </div>
 
@@ -619,7 +619,7 @@ export default function Commissions() {
                 value={payRef}
                 onChange={(e) => setPayRef(e.target.value)}
                 placeholder="UPI Ref, Cheque No, Bank Trx"
-                className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
               />
             </div>
 
@@ -630,7 +630,7 @@ export default function Commissions() {
                 value={payRemarks}
                 onChange={(e) => setPayRemarks(e.target.value)}
                 placeholder="Add special conditions or transaction remarks..."
-                className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
               />
             </div>
 
@@ -644,7 +644,7 @@ export default function Commissions() {
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer"
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors shadow-lg cursor-pointer"
               >
                 Disburse Payout
               </button>
@@ -656,7 +656,7 @@ export default function Commissions() {
       {/* KPI Dashboard Cards Grid (6 Live Cards as requested) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {/* Today's Commission */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-lg">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Today's Commission</p>
           <p className="text-xl font-bold text-slate-900">₹{todayEarned.toLocaleString()}</p>
           <div className="mt-2 text-xs text-slate-500 flex items-center gap-1">
@@ -666,7 +666,7 @@ export default function Commissions() {
         </div>
 
         {/* Monthly Commission */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-lg">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Monthly Commission</p>
           <p className="text-xl font-bold text-slate-900">₹{monthlyEarned.toLocaleString()}</p>
           <div className="mt-2 text-xs text-slate-500 flex items-center gap-1">
@@ -676,7 +676,7 @@ export default function Commissions() {
         </div>
 
         {/* Total Commission Paid */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-lg">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total Paid</p>
           <p className="text-xl font-bold text-emerald-600">₹{totalPaidCommission.toLocaleString()}</p>
           <div className="mt-2 text-xs text-slate-500 flex items-center gap-1">
@@ -686,7 +686,7 @@ export default function Commissions() {
         </div>
 
         {/* Pending Commission */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-lg">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Pending Commission</p>
           <p className="text-xl font-bold text-amber-600">₹{totalPendingCommission.toLocaleString()}</p>
           <div className="mt-2 text-xs text-slate-500 flex items-center gap-1">
@@ -696,9 +696,9 @@ export default function Commissions() {
         </div>
 
         {/* Total Employees */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-lg">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total Employees</p>
-          <p className="text-xl font-bold text-[#003366]">{totalEmployeesCount}</p>
+          <p className="text-xl font-bold text-[#9333EA]">{totalEmployeesCount}</p>
           <div className="mt-2 text-xs text-slate-500 flex items-center gap-1">
             <Users className="w-3.5 h-3.5 text-blue-500" />
             <span>Registered profiles</span>
@@ -706,7 +706,7 @@ export default function Commissions() {
         </div>
 
         {/* Active Collectors */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-lg">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Active Collectors</p>
           <p className="text-xl font-bold text-emerald-600">{activeCollectorsCount}</p>
           <div className="mt-2 text-xs text-slate-500 flex items-center gap-1">
@@ -717,16 +717,16 @@ export default function Commissions() {
       </div>
 
       {/* Main Commission Register Section */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-lg overflow-hidden">
+        <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-2">
-            <Coins className="w-5 h-5 text-[#003366]" />
+            <Coins className="w-5 h-5 text-[#9333EA]" />
             <h3 className="font-bold text-slate-800 text-sm">Employee Commission Register Ledger</h3>
           </div>
           <div className="flex flex-wrap gap-2 print:hidden">
             <button
               onClick={exportRegisterPDF}
-              className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1.5 cursor-pointer"
+              className="bg-white border border-slate-100 hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1.5 cursor-pointer"
               title="Export Register to PDF"
             >
               <FileText className="w-3.5 h-3.5 text-red-500" />
@@ -734,7 +734,7 @@ export default function Commissions() {
             </button>
             <button
               onClick={exportRegisterExcel}
-              className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1.5 cursor-pointer"
+              className="bg-white border border-slate-100 hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1.5 cursor-pointer"
               title="Export Register to Excel"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
@@ -742,7 +742,7 @@ export default function Commissions() {
             </button>
             <button
               onClick={handlePrint}
-              className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1.5 cursor-pointer"
+              className="bg-white border border-slate-100 hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1.5 cursor-pointer"
               title="Print Ledger"
             >
               <Printer className="w-3.5 h-3.5 text-slate-600" />
@@ -760,7 +760,7 @@ export default function Commissions() {
               placeholder="Search Name, ID, Phone..."
               value={registerSearchQuery}
               onChange={(e) => setRegisterSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:bg-white focus:border-[#003366] transition-all"
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-lg text-xs outline-none focus:bg-white focus:border-[#003366] transition-all"
             />
           </div>
 
@@ -768,7 +768,7 @@ export default function Commissions() {
             <select
               value={registerFilterStatus}
               onChange={(e) => setRegisterFilterStatus(e.target.value)}
-              className="w-full border-slate-200 rounded-lg text-xs outline-none p-2.5 bg-slate-50 focus:bg-white border"
+              className="w-full border-slate-100 rounded-lg text-xs outline-none p-2.5 bg-slate-50 focus:bg-white border"
             >
               <option value="All">All Status (Active/Inactive/Paid/Pending)</option>
               <option value="Active">Profile: Active Only</option>
@@ -782,7 +782,7 @@ export default function Commissions() {
             <select
               value={registerFilterBranch}
               onChange={(e) => setRegisterFilterBranch(e.target.value)}
-              className="w-full border-slate-200 rounded-lg text-xs outline-none p-2.5 bg-slate-50 focus:bg-white border"
+              className="w-full border-slate-100 rounded-lg text-xs outline-none p-2.5 bg-slate-50 focus:bg-white border"
             >
               <option value="All">All Branches</option>
               {uniqueBranches.map((branch) => (
@@ -802,7 +802,7 @@ export default function Commissions() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-slate-50 text-slate-500 uppercase font-bold tracking-wider border-b border-slate-200">
+              <tr className="bg-slate-50 text-slate-500 uppercase font-bold tracking-wider border-b border-slate-100">
                 <th className="p-4">Employee ID</th>
                 <th className="p-4">Employee Name</th>
                 <th className="p-4">Mobile Number</th>
@@ -854,7 +854,7 @@ export default function Commissions() {
                     <td className="p-4 text-center print:hidden">
                       <button
                         onClick={() => setSelectedDetailsEmployeeId(emp.id)}
-                        className="px-3 py-1 bg-slate-100 text-slate-700 hover:bg-[#003366] hover:text-white rounded text-[11px] font-bold transition-all cursor-pointer"
+                        className="px-3 py-1 bg-slate-100 text-slate-700 hover:bg-gradient-to-r from-[#9333EA] to-[#581c87] hover:text-white rounded text-[11px] font-bold transition-all cursor-pointer"
                       >
                         View Details
                       </button>
@@ -878,7 +878,7 @@ export default function Commissions() {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="px-6 py-4 bg-[#003366] text-white flex justify-between items-center">
+            <div className="px-6 py-4 bg-gradient-to-r from-[#9333EA] to-[#581c87] text-white flex justify-between items-center">
               <div>
                 <span className="bg-blue-800 text-blue-100 px-2 py-0.5 rounded font-mono font-bold text-xs">
                   {detailsEmp.id}
@@ -896,7 +896,7 @@ export default function Commissions() {
             {/* Modal Content */}
             <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-50">
               {/* Quick Profile Bio Info */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white p-4 rounded-xl border border-slate-200 text-xs">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white p-4 rounded-2xl border border-slate-100 text-xs">
                 <div>
                   <p className="text-slate-400 font-bold uppercase mb-0.5">Designation</p>
                   <p className="font-semibold text-slate-800 flex items-center gap-1">
@@ -929,31 +929,31 @@ export default function Commissions() {
 
               {/* Commission Stats Cards Grid (Requirement 5) */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-lg text-center">
                   <p className="text-slate-400 text-xs font-bold uppercase mb-1">Total Collections</p>
                   <p className="text-lg font-bold text-slate-800">{detailsEmp.collectionsCount} collections</p>
                   <p className="text-xs text-slate-500 font-semibold mt-0.5">₹{detailsEmp.collectionsSum.toLocaleString()}</p>
                 </div>
 
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-lg text-center">
                   <p className="text-slate-400 text-xs font-bold uppercase mb-1">Commission Earned</p>
-                  <p className="text-lg font-bold text-[#003366]">₹{detailsEmp.commissionEarned.toLocaleString()}</p>
+                  <p className="text-lg font-bold text-[#9333EA]">₹{detailsEmp.commissionEarned.toLocaleString()}</p>
                   <p className="text-xs text-slate-400 mt-0.5">Includes registrations</p>
                 </div>
 
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-lg text-center">
                   <p className="text-slate-400 text-xs font-bold uppercase mb-1">Paid Amount</p>
                   <p className="text-lg font-bold text-emerald-600">₹{detailsEmp.commissionPaid.toLocaleString()}</p>
                   <p className="text-xs text-slate-400 mt-0.5">Total processed payouts</p>
                 </div>
 
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center bg-amber-50/30 border-amber-200">
+                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-lg text-center bg-amber-50/30 border-amber-200">
                   <p className="text-amber-700 text-xs font-bold uppercase mb-1">Pending Amount</p>
                   <p className="text-lg font-extrabold text-amber-600">₹{detailsEmp.pendingCommission.toLocaleString()}</p>
                   {isAdmin && detailsEmp.pendingCommission > 0 && (
                     <button
                       onClick={() => handleQuickPayout(detailsEmp.id, detailsEmp.pendingCommission)}
-                      className="mt-2 text-[10px] font-bold bg-amber-600 hover:bg-amber-700 text-white px-2 py-1 rounded shadow-sm transition-colors cursor-pointer"
+                      className="mt-2 text-[10px] font-bold bg-amber-600 hover:bg-amber-700 text-white px-2 py-1 rounded shadow-lg transition-colors cursor-pointer"
                     >
                       Pay Now
                     </button>
@@ -962,8 +962,8 @@ export default function Commissions() {
               </div>
 
               {/* Subtabs for Details */}
-              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                <div className="border-b border-slate-200 bg-slate-50/50 px-4 py-3">
+              <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                <div className="border-b border-slate-100 bg-slate-50/50 px-4 py-3">
                   <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Ledgers & Historical Journals</h4>
                 </div>
                 
@@ -973,7 +973,7 @@ export default function Commissions() {
                     <h5 className="font-bold text-slate-700 text-xs flex items-center gap-1.5 mb-2">
                       <History className="w-3.5 h-3.5 text-slate-500" /> Disbursed Payout Transactions
                     </h5>
-                    <div className="border border-slate-200 rounded-lg overflow-x-auto text-[11px] bg-white">
+                    <div className="border border-slate-100 rounded-lg overflow-x-auto text-[11px] bg-white">
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="bg-slate-50 text-slate-500 uppercase font-bold text-[9px] border-b border-slate-100">
@@ -1020,7 +1020,7 @@ export default function Commissions() {
                     <h5 className="font-bold text-slate-700 text-xs flex items-center gap-1.5 mb-2">
                       <Coins className="w-3.5 h-3.5 text-slate-500" /> Daily Deposit Collections Handled
                     </h5>
-                    <div className="border border-slate-200 rounded-lg overflow-x-auto text-[11px] bg-white">
+                    <div className="border border-slate-100 rounded-lg overflow-x-auto text-[11px] bg-white">
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="bg-slate-50 text-slate-500 uppercase font-bold text-[9px] border-b border-slate-100">
@@ -1065,7 +1065,7 @@ export default function Commissions() {
                     <h5 className="font-bold text-slate-700 text-xs flex items-center gap-1.5 mb-2">
                       <User className="w-3.5 h-3.5 text-slate-500" /> Members Registered (Acquisition Incentives)
                     </h5>
-                    <div className="border border-slate-200 rounded-lg overflow-x-auto text-[11px] bg-white">
+                    <div className="border border-slate-100 rounded-lg overflow-x-auto text-[11px] bg-white">
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="bg-slate-50 text-slate-500 uppercase font-bold text-[9px] border-b border-slate-100">
@@ -1107,7 +1107,7 @@ export default function Commissions() {
             <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-2 bg-slate-50">
               <button
                 onClick={() => setSelectedDetailsEmployeeId(null)}
-                className="px-4 py-2 bg-[#003366] hover:bg-[#004080] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
+                className="px-4 py-2 bg-gradient-to-r from-[#9333EA] to-[#581c87] hover:from-[#7e22ce] hover:to-[#4c1d95] text-white text-xs font-semibold rounded-lg shadow-lg transition-colors cursor-pointer"
               >
                 Close Profile
               </button>
@@ -1119,7 +1119,7 @@ export default function Commissions() {
       {/* Payment Disbursal History & Audit Logs Section (Requirement 7) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Payment history list */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-lg p-6 space-y-4">
           <div className="border-b pb-3 flex justify-between items-center">
             <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
               <History className="w-5 h-5 text-slate-500" /> Commission History & Payouts Ledger
@@ -1127,14 +1127,14 @@ export default function Commissions() {
             <div className="flex gap-2 print:hidden">
               <button
                 onClick={exportHistoryPDF}
-                className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 p-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                className="bg-white border border-slate-100 hover:bg-slate-50 text-slate-600 p-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
                 title="Export History to PDF"
               >
                 <FileText className="w-3.5 h-3.5 text-red-500" />
               </button>
               <button
                 onClick={exportHistoryExcel}
-                className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 p-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                className="bg-white border border-slate-100 hover:bg-slate-50 text-slate-600 p-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
                 title="Export History to Excel"
               >
                 <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
@@ -1152,7 +1152,7 @@ export default function Commissions() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-slate-800 text-sm">{pay.employeeName}</span>
-                      <span className="text-[10px] font-mono text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-200">
+                      <span className="text-[10px] font-mono text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-100">
                         {pay.employeeId}
                       </span>
                       <span className="text-[10px] text-blue-800 bg-blue-50 px-1.5 py-0.5 rounded font-semibold">
@@ -1217,12 +1217,12 @@ export default function Commissions() {
         </div>
 
         {/* Audit Log for Commission processes */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4 print:hidden">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-lg p-6 space-y-4 print:hidden">
           <div className="border-b pb-3 flex justify-between items-center">
             <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
               <History className="w-4.5 h-4.5 text-slate-500" /> Commission Audits
             </h3>
-            <span className="text-[10px] text-slate-400 uppercase font-bold text-[#003366]">Security Logs</span>
+            <span className="text-[10px] text-slate-400 uppercase font-bold text-[#9333EA]">Security Logs</span>
           </div>
 
           <div className="space-y-3 max-h-96 overflow-y-auto pr-1">

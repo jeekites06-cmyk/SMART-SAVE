@@ -17,7 +17,8 @@ import {
   AlertCircle,
   Clock,
   Camera,
-  User as UserIcon
+  User as UserIcon,
+  KeyRound
 } from "lucide-react";
 import { Member } from "../types";
 import { useData } from "../context/DataContext";
@@ -30,7 +31,7 @@ import MemberProfileView from "../components/MemberProfileView";
 
 export default function Members() {
   const { user } = useAuth();
-  const { members, collections, addMember, updateMember, deleteMember, addMemberPlan, updateMemberPlanStatus, settings, addCollection } = useData();
+  const { members, collections, addMember, updateMember, deleteMember, addMemberPlan, updateMemberPlanStatus, settings, addCollection, logAudit } = useData();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,6 +44,67 @@ export default function Members() {
   const [viewingMember, setViewingMember] = useState<Member | null>(null);
   const [showAutoReminder, setShowAutoReminder] = useState(true);
   const [paymentSuccessMsg, setPaymentSuccessMsg] = useState<string | null>(null);
+
+  // Admin Reset Password State
+  const [resetPasswordFor, setResetPasswordFor] = useState<{ id: string; name: string } | null>(null);
+  const [adminPasswordInput, setAdminPasswordInput] = useState("");
+  const [newPasswordInput, setNewPasswordInput] = useState("");
+  const [confirmNewPasswordInput, setConfirmNewPasswordInput] = useState("");
+  const [resetPasswordError, setResetPasswordError] = useState("");
+  
+  const handleAdminResetPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetPasswordError("");
+
+    if (!resetPasswordFor) return;
+
+    if (adminPasswordInput !== (settings?.adminPassword || "Ani@2024")) {
+      setResetPasswordError("Incorrect Admin Password.");
+      return;
+    }
+
+    if (newPasswordInput !== confirmNewPasswordInput) {
+      setResetPasswordError("New passwords do not match.");
+      return;
+    }
+
+    const minLength = /.{8,}/;
+    const hasUpper = /[A-Z]/;
+    const hasLower = /[a-z]/;
+    const hasNumber = /[0-9]/;
+    const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/;
+    
+    if (!minLength.test(newPasswordInput)) {
+      setResetPasswordError("Minimum 8 Characters");
+      return;
+    }
+    if (!hasUpper.test(newPasswordInput)) {
+      setResetPasswordError("At least one uppercase letter");
+      return;
+    }
+    if (!hasLower.test(newPasswordInput)) {
+      setResetPasswordError("At least one lowercase letter");
+      return;
+    }
+    if (!hasNumber.test(newPasswordInput)) {
+      setResetPasswordError("At least one number");
+      return;
+    }
+    if (!hasSpecial.test(newPasswordInput)) {
+      setResetPasswordError("At least one special character");
+      return;
+    }
+
+    updateMember(resetPasswordFor.id, { password: newPasswordInput } as any);
+    logAudit("Password Reset", `Password reset for member ${resetPasswordFor.name} by Super Admin`);
+    setPaymentSuccessMsg(`Password reset successfully for ${resetPasswordFor.name}.`);
+    setTimeout(() => setPaymentSuccessMsg(null), 3000);
+    
+    setResetPasswordFor(null);
+    setAdminPasswordInput("");
+    setNewPasswordInput("");
+    setConfirmNewPasswordInput("");
+  };
 
   const currentViewingMember = viewingMember ? (members.find(m => m.id === viewingMember.id) || viewingMember) : null;
 
@@ -237,9 +299,9 @@ export default function Members() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">My Member Portal</h1>
+          <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#16A34A] to-[#14532d]">My Member Portal</h1>
           <p className="text-slate-500 text-sm mt-1">
-            Welcome back, <span className="font-bold text-[#003366]">{currentViewingMember.name}</span>. Review your plans, savings ledger, and performance details.
+            Welcome back, <span className="font-bold text-[#16A34A]">{currentViewingMember.name}</span>. Review your plans, savings ledger, and performance details.
           </p>
         </div>
 
@@ -248,7 +310,7 @@ export default function Members() {
         {/* Automatic App Reminder Popup Modal */}
         {showAutoReminder && !memberDueInfo.paidToday && totalDailyAmount > 0 && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
               <div className="bg-amber-500 p-6 text-white text-center flex flex-col items-center">
                 <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-3">
                   <AlertCircle className="w-7 h-7 text-white animate-bounce" />
@@ -275,13 +337,13 @@ export default function Members() {
                 <div className="grid grid-cols-2 gap-3 mt-6">
                   <button
                     onClick={() => setShowAutoReminder(false)}
-                    className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer border border-slate-200"
+                    className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-2xl transition-all cursor-pointer border border-slate-100"
                   >
                     Pay Later
                   </button>
                   <button
                     onClick={handleInAppPayment}
-                    className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-1 cursor-pointer"
+                    className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-2xl shadow-lg transition-all flex items-center justify-center gap-1 cursor-pointer"
                   >
                     Pay Now
                   </button>
@@ -329,45 +391,45 @@ export default function Members() {
       <div className="space-y-6 max-w-5xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-[#003366] text-white flex items-center justify-center font-bold text-2xl">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#16A34A] to-[#14532d] text-white flex items-center justify-center font-bold text-2xl">
               {viewingMember.name.charAt(0).toUpperCase()}
             </div>
             My Profile
           </h2>
           <div className="flex gap-2">
-            <button onClick={generateStatement} className="px-3 py-1.5 text-sm font-medium text-[#003366] bg-blue-50 hover:bg-blue-100 rounded-lg flex items-center gap-1"><Download className="w-4 h-4"/> Statement</button>
-            <button onClick={generateLedger} className="px-3 py-1.5 text-sm font-medium text-[#003366] bg-blue-50 hover:bg-blue-100 rounded-lg flex items-center gap-1"><Download className="w-4 h-4"/> Ledger</button>
-            <button onClick={generateMaturityReport} className="px-3 py-1.5 text-sm font-medium text-[#003366] bg-blue-50 hover:bg-blue-100 rounded-lg flex items-center gap-1"><Download className="w-4 h-4"/> Maturity</button>
+            <button onClick={generateStatement} className="px-3 py-1.5 text-sm font-medium text-[#16A34A] bg-blue-50 hover:bg-blue-100 rounded-lg flex items-center gap-1"><Download className="w-4 h-4"/> Statement</button>
+            <button onClick={generateLedger} className="px-3 py-1.5 text-sm font-medium text-[#16A34A] bg-blue-50 hover:bg-blue-100 rounded-lg flex items-center gap-1"><Download className="w-4 h-4"/> Ledger</button>
+            <button onClick={generateMaturityReport} className="px-3 py-1.5 text-sm font-medium text-[#16A34A] bg-blue-50 hover:bg-blue-100 rounded-lg flex items-center gap-1"><Download className="w-4 h-4"/> Maturity</button>
           </div>
         </div>
 
         {/* Payment Success Alert */}
         {paymentSuccessMsg && (
-          <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl flex items-center gap-3 shadow-sm text-sm">
+          <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl flex items-center gap-3 shadow-lg text-sm">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
             <span className="font-semibold">{paymentSuccessMsg}</span>
           </div>
         )}
 
         {/* Progress Bar */}
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg">
           <div className="flex justify-between items-end mb-2">
             <div>
               <h3 className="font-semibold text-slate-800">Plan Progress</h3>
               <p className="text-sm text-slate-500">{totalDaysPaid} / {planDuration} Days Completed</p>
             </div>
             <div className="text-right">
-              <span className="text-3xl font-bold text-[#003366]">{progressPercentage}%</span>
+              <span className="text-3xl font-bold text-[#16A34A]">{progressPercentage}%</span>
               <span className="text-sm text-slate-500 ml-1">Completed</span>
             </div>
           </div>
           <div className="w-full bg-slate-100 rounded-full h-4 mt-2">
-            <div className="bg-[#003366] h-4 rounded-full transition-all duration-500" style={{ width: `${progressPercentage}%` }}></div>
+            <div className="bg-gradient-to-r from-[#16A34A] to-[#14532d] h-4 rounded-full transition-all duration-500" style={{ width: `${progressPercentage}%` }}></div>
           </div>
         </div>
 
         {/* Payment & Dues Center Card */}
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg">
           <h3 className="font-bold text-slate-800 mb-4 border-b pb-2 flex items-center justify-between">
             <span className="text-sm tracking-wide uppercase text-slate-500">Payment & Dues Center</span>
             <span className={`px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1 ${
@@ -379,7 +441,7 @@ export default function Members() {
             </span>
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
               <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">Today's Payment</p>
               <div className="flex items-center gap-2 mt-1.5">
                 {memberDueInfo.paidToday ? (
@@ -389,7 +451,7 @@ export default function Members() {
                 )}
               </div>
             </div>
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
               <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">Yesterday's Payment</p>
               <div className="flex items-center gap-2 mt-1.5">
                 {paidYesterday ? (
@@ -399,7 +461,7 @@ export default function Members() {
                 )}
               </div>
             </div>
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
               <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">Total Due</p>
               <p className="text-lg font-extrabold font-mono mt-1 text-rose-600">
                 ₹{memberDueInfo.dueAmount}
@@ -408,7 +470,7 @@ export default function Members() {
                 <p className="text-[10px] text-rose-500 font-bold mt-1 uppercase">Includes ₹{memberDueInfo.fineAmount} Fine</p>
               )}
             </div>
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
               <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">Last Paid Date</p>
               <p className="text-xs font-bold mt-2.5 text-slate-700">
                 {memberDueInfo.lastPaymentDate}
@@ -418,14 +480,14 @@ export default function Members() {
 
           {/* Quick Pay Button */}
           {!memberDueInfo.paidToday && totalDailyAmount > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mt-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mt-4">
               <div>
                 <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">Payment Due</p>
                 <p className="text-sm font-semibold text-amber-700 mt-1">Amount: ₹{totalDailyAmount} ({totalActivePlans} Active Plan{totalActivePlans > 1 ? "s" : ""})</p>
               </div>
               <button 
                 onClick={handleInAppPayment}
-                className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-2xl shadow-lg transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 Pay Now (₹{totalDailyAmount})
               </button>
@@ -434,7 +496,7 @@ export default function Members() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg">
             <h3 className="font-bold text-slate-800 mb-4 border-b pb-2">Personal Details</h3>
             <div className="grid grid-cols-2 gap-y-4 gap-x-2">
               <div>
@@ -474,16 +536,16 @@ export default function Members() {
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg">
             <h3 className="font-bold text-slate-800 mb-4 border-b pb-2">Plan Details</h3>
             <div className="grid grid-cols-2 gap-y-4 gap-x-2">
               <div>
                 <p className="text-xs text-slate-500 uppercase tracking-wider">Total Active Plans</p>
-                <p className="font-semibold text-[#003366]">{totalActivePlans}</p>
+                <p className="font-semibold text-[#16A34A]">{totalActivePlans}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-500 uppercase tracking-wider">Total Daily Amount</p>
-                <p className="font-semibold text-[#003366]">₹{totalDailyAmount}</p>
+                <p className="font-semibold text-[#16A34A]">₹{totalDailyAmount}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-500 uppercase tracking-wider">Daily Deposit</p>
@@ -517,7 +579,7 @@ export default function Members() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg">
           <h3 className="font-bold text-slate-800 mb-4 border-b pb-2">My Plans</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {plans.map((p) => (
@@ -539,7 +601,7 @@ export default function Members() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg">
           <h3 className="font-bold text-slate-800 mb-4 border-b pb-2">Financial Summary</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
@@ -562,26 +624,26 @@ export default function Members() {
           <div className="grid grid-cols-2 gap-4 mt-6 pt-4 border-t border-slate-100">
             <div>
               <p className="text-xs text-slate-500 uppercase tracking-wider">Total Savings</p>
-              <p className="text-2xl font-bold text-[#003366]">₹{totalSavings}</p>
+              <p className="text-2xl font-bold text-[#16A34A]">₹{totalSavings}</p>
             </div>
             <div>
               <p className="text-xs text-slate-500 uppercase tracking-wider">Total Bonus</p>
               <p className="text-2xl font-bold text-purple-600">₹{totalBonus}</p>
             </div>
           </div>
-          <div className="mt-6 pt-6 border-t border-slate-100 bg-emerald-50 p-6 rounded-xl text-center">
+          <div className="mt-6 pt-6 border-t border-slate-100 bg-emerald-50 p-6 rounded-2xl text-center">
             <p className="text-emerald-800 font-medium">{totalDaysPaid >= planDuration ? "Plan Matured" : "Estimated Maturity Amount"}</p>
             <p className="text-4xl font-extrabold text-emerald-600 mt-2">₹{maturityAmount}</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-200">
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100">
             <h3 className="text-lg font-bold text-slate-800">Payment History</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200">
+              <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-100">
                 <tr>
                   <th className="px-6 py-3">Date</th>
                   <th className="px-6 py-3">Receipt No</th>
@@ -600,7 +662,7 @@ export default function Members() {
                       <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">{c.status}</span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button onClick={() => downloadReceiptPDF(c)} className="text-[#003366] hover:text-blue-800 p-1 bg-blue-50 hover:bg-blue-100 rounded mr-2" title="Download PDF"><Download className="w-4 h-4" /></button>
+                      <button onClick={() => downloadReceiptPDF(c)} className="text-[#16A34A] hover:text-blue-800 p-1 bg-blue-50 hover:bg-blue-100 rounded mr-2" title="Download PDF"><Download className="w-4 h-4" /></button>
                     </td>
                   </tr>
                 ))}
@@ -617,7 +679,7 @@ export default function Members() {
         {/* Automatic App Reminder Popup Modal */}
         {showAutoReminder && !memberDueInfo.paidToday && totalDailyAmount > 0 && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
               {/* Top Warning Banner */}
               <div className="bg-amber-500 p-6 text-white text-center flex flex-col items-center">
                 <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-3">
@@ -645,13 +707,13 @@ export default function Members() {
                 <div className="grid grid-cols-2 gap-3 mt-6">
                   <button
                     onClick={() => setShowAutoReminder(false)}
-                    className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer border border-slate-200"
+                    className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-2xl transition-all cursor-pointer border border-slate-100"
                   >
                     Pay Later
                   </button>
                   <button
                     onClick={handleInAppPayment}
-                    className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-1 cursor-pointer"
+                    className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-2xl shadow-lg transition-all flex items-center justify-center gap-1 cursor-pointer"
                   >
                     Pay Now
                   </button>
@@ -681,7 +743,7 @@ export default function Members() {
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">
+          <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#16A34A] to-[#14532d]">
             Members Directory
           </h1>
           <p className="text-slate-500 text-sm mt-1">
@@ -690,7 +752,7 @@ export default function Members() {
         </div>
         <button
           onClick={openAddModal}
-          className="bg-[#003366] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#004080] transition-colors shadow-sm flex items-center gap-2"
+          className="bg-gradient-to-r from-[#16A34A] to-[#14532d] text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-[#15803d] hover:to-[#166534] transition-colors shadow-lg flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
           Add Member
@@ -714,16 +776,16 @@ export default function Members() {
               setSearchParams({});
               setStatusFilter("All Status");
             }}
-            className="text-xs font-bold text-blue-600 hover:text-blue-800 underline uppercase tracking-wider cursor-pointer"
+            className="text-xs font-bold text-[#16A34A] hover:text-blue-800 underline uppercase tracking-wider cursor-pointer"
           >
             Clear All Filters
           </button>
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-slate-200 overflow-hidden flex flex-col">
+      <div className="bg-white rounded-2xl shadow-lg hover:shadow-md transition-shadow border border-slate-100 overflow-hidden flex flex-col">
         {/* Toolbar */}
-        <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-50">
+        <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-50">
           <div className="relative w-full sm:w-96">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -754,7 +816,7 @@ export default function Members() {
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-white border-b border-slate-200 text-slate-600 font-medium">
+            <thead className="bg-white border-b border-slate-100 text-slate-600 font-medium">
               <tr>
                 <th className="px-6 py-4 whitespace-nowrap">Member Info</th>
                 <th className="px-6 py-4 whitespace-nowrap">Contact</th>
@@ -778,7 +840,7 @@ export default function Members() {
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 text-[#003366] font-bold flex items-center justify-center overflow-hidden shrink-0 border border-slate-200">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 text-[#16A34A] font-bold flex items-center justify-center overflow-hidden shrink-0 border border-slate-100">
                           {member.photo ? (
                             <img 
                               src={member.photo} 
@@ -799,7 +861,7 @@ export default function Members() {
                           <div className="text-xs text-slate-500 flex items-center gap-1.5">
                             <span>ID: {member.id}</span>
                             <span className="text-slate-300">|</span>
-                            <span className="bg-blue-50 text-blue-700 px-1 py-0.2 rounded text-[10px] font-medium font-mono">
+                            <span className="bg-blue-50 text-[#14532d] px-1 py-0.2 rounded text-[10px] font-medium font-mono">
                               {member.plans ? member.plans.filter((p: any) => p.status === "Active").length : 1} Plan(s) (₹{member.dailyAmount}/day)
                             </span>
                           </div>
@@ -839,7 +901,7 @@ export default function Members() {
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={(e) => { e.stopPropagation(); openProfileModal(member); }}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                          className="p-1.5 text-[#16A34A] hover:bg-blue-50 rounded-md transition-colors"
                           title="View Profile"
                         >
                           <Eye className="w-4 h-4" />
@@ -851,7 +913,16 @@ export default function Members() {
                         >
                           <Edit className="w-4 h-4" />
                         </button>
-                        {(user?.role === "Super Admin" || user?.role === "Administrator" || user?.role === "Employee") && (
+                        {user?.role === "Super Admin" && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setResetPasswordFor({ id: member.id, name: member.name }); }}
+                            className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                            title="Reset Password"
+                          >
+                            <KeyRound className="w-4 h-4" />
+                          </button>
+                        )}
+                        {user?.role === "Super Admin" && (
                           <button
                             onClick={(e) => { e.stopPropagation(); handleDelete(member.id); }}
                             className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
@@ -879,7 +950,7 @@ export default function Members() {
         </div>
 
         {/* Pagination */}
-        <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50">
+        <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50">
           <p className="text-sm text-slate-500">
             Showing{" "}
             <span className="font-medium text-slate-700">
@@ -901,7 +972,7 @@ export default function Members() {
             >
               Previous
             </button>
-            <button className="px-3 py-1 border border-blue-600 bg-blue-50 rounded-md text-sm text-blue-700 font-medium">
+            <button className="px-3 py-1 border border-blue-600 bg-blue-50 rounded-md text-sm text-[#14532d] font-medium">
               {currentPage}
             </button>
             <button
@@ -918,8 +989,8 @@ export default function Members() {
       {/* Add/Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden my-8">
-            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden my-8">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
               <h2 className="text-lg font-bold text-slate-800">
                 {editingMember ? "Edit Member" : "Add New Member"}
               </h2>
@@ -942,7 +1013,7 @@ export default function Members() {
                 <div className="md:col-span-2">
                   <div className="flex flex-col md:flex-row items-center gap-4 border border-slate-100 p-3 rounded-lg bg-slate-50/50">
                     <div className="relative shrink-0">
-                      <div className="w-20 h-20 rounded-full border border-slate-200 overflow-hidden bg-white flex items-center justify-center shadow-xs">
+                      <div className="w-20 h-20 rounded-full border border-slate-100 overflow-hidden bg-white flex items-center justify-center shadow-xs">
                         {formData.photo ? (
                           <img 
                             src={formData.photo} 
@@ -954,7 +1025,7 @@ export default function Members() {
                           <UserIcon className="w-8 h-8 text-slate-300" />
                         )}
                       </div>
-                      <label className="absolute -bottom-1 -right-1 bg-[#003366] text-white p-1.5 rounded-full cursor-pointer hover:bg-blue-800 transition-colors shadow-xs">
+                      <label className="absolute -bottom-1 -right-1 bg-gradient-to-r from-[#16A34A] to-[#14532d] text-white p-1.5 rounded-full cursor-pointer hover:bg-blue-800 transition-colors shadow-xs">
                         <Camera className="w-3.5 h-3.5" />
                         <input 
                           type="file" 
@@ -1161,6 +1232,28 @@ export default function Members() {
                     <option value="Inactive">Inactive</option>
                   </select>
                 </div>
+                {user?.role === "Super Admin" && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Account Access Status (Security)
+                    </label>
+                    <select
+                      value={formData.accountStatus || "Active"}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          accountStatus: e.target.value as "Active" | "Inactive" | "Locked" | "Disabled",
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-[#003366] focus:border-[#003366]"
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                      <option value="Locked">Locked</option>
+                      <option value="Disabled">Disabled</option>
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
                     Nominee Name
@@ -1193,7 +1286,7 @@ export default function Members() {
                 </div>
               </div>
 
-              <div className="mt-8 flex justify-end gap-3 pt-6 border-t border-slate-200">
+              <div className="mt-8 flex justify-end gap-3 pt-6 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
@@ -1203,7 +1296,7 @@ export default function Members() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-sm font-medium text-white bg-[#003366] rounded-lg hover:bg-[#004080] transition-colors shadow-sm"
+                  className="px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-[#16A34A] to-[#14532d] rounded-lg hover:from-[#15803d] hover:to-[#166534] transition-colors shadow-lg"
                 >
                   {editingMember ? "Save Changes" : "Save Member"}
                 </button>
@@ -1257,10 +1350,12 @@ export default function Members() {
 
         const printReceipt = (receipt: any) => {
            window.print();
+           logAudit("Receipt Printed", `Receipt ${receipt.receiptNo || receipt.id} was printed`, "Members");
         };
 
         const downloadReceiptPDF = (receipt: any) => {
           downloadReceiptPDFUtil(receipt, settings, "download");
+          logAudit("Receipt Downloaded", `Receipt ${receipt.receiptNo || receipt.id} was downloaded`, "Members");
         };
 
         const generateStatement = () => {
@@ -1327,18 +1422,18 @@ export default function Members() {
 
         return (
           <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl overflow-hidden my-8 flex flex-col max-h-[90vh]">
-              <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 shrink-0">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-5xl overflow-hidden my-8 flex flex-col max-h-[90vh]">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
                 <h2 className="text-lg font-bold text-slate-800 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#003366] text-white flex items-center justify-center font-bold text-xl">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#16A34A] to-[#14532d] text-white flex items-center justify-center font-bold text-xl">
                     {viewingMember.name.charAt(0).toUpperCase()}
                   </div>
                   Member Profile: {viewingMember.name}
                 </h2>
                 <div className="flex gap-2">
-                  <button onClick={generateStatement} className="px-3 py-1.5 text-xs font-medium text-[#003366] bg-blue-50 hover:bg-blue-100 rounded-md flex items-center gap-1"><Download className="w-3 h-3"/> Statement</button>
-                  <button onClick={generateLedger} className="px-3 py-1.5 text-xs font-medium text-[#003366] bg-blue-50 hover:bg-blue-100 rounded-md flex items-center gap-1"><Download className="w-3 h-3"/> Ledger</button>
-                  <button onClick={generateMaturityReport} className="px-3 py-1.5 text-xs font-medium text-[#003366] bg-blue-50 hover:bg-blue-100 rounded-md flex items-center gap-1"><Download className="w-3 h-3"/> Maturity</button>
+                  <button onClick={generateStatement} className="px-3 py-1.5 text-xs font-medium text-[#16A34A] bg-blue-50 hover:bg-blue-100 rounded-md flex items-center gap-1"><Download className="w-3 h-3"/> Statement</button>
+                  <button onClick={generateLedger} className="px-3 py-1.5 text-xs font-medium text-[#16A34A] bg-blue-50 hover:bg-blue-100 rounded-md flex items-center gap-1"><Download className="w-3 h-3"/> Ledger</button>
+                  <button onClick={generateMaturityReport} className="px-3 py-1.5 text-xs font-medium text-[#16A34A] bg-blue-50 hover:bg-blue-100 rounded-md flex items-center gap-1"><Download className="w-3 h-3"/> Maturity</button>
                   <button
                     onClick={handleCloseProfile}
                     className="text-slate-400 hover:text-slate-600 transition-colors p-1 ml-2"
@@ -1350,25 +1445,25 @@ export default function Members() {
               
               <div className="p-6 overflow-y-auto flex-1">
                 {/* Progress Bar */}
-                <div className="mb-8 bg-slate-50 p-5 rounded-xl border border-slate-200">
+                <div className="mb-8 bg-slate-50 p-5 rounded-2xl border border-slate-100">
                   <div className="flex justify-between items-end mb-2">
                     <div>
                       <h3 className="font-semibold text-slate-800">Plan Progress</h3>
                       <p className="text-sm text-slate-500">{totalDaysPaid} / {planDuration} Days Completed</p>
                     </div>
                     <div className="text-right">
-                      <span className="text-2xl font-bold text-[#003366]">{progressPercentage}%</span>
+                      <span className="text-2xl font-bold text-[#16A34A]">{progressPercentage}%</span>
                       <span className="text-sm text-slate-500 ml-1">Completed</span>
                     </div>
                   </div>
                   <div className="w-full bg-slate-200 rounded-full h-3">
-                    <div className="bg-[#003366] h-3 rounded-full transition-all duration-500" style={{ width: `${progressPercentage}%` }}></div>
+                    <div className="bg-gradient-to-r from-[#16A34A] to-[#14532d] h-3 rounded-full transition-all duration-500" style={{ width: `${progressPercentage}%` }}></div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                    <div className="space-y-6">
-                      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                      <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-lg">
                         <h3 className="font-bold text-slate-800 mb-4 border-b pb-2">Personal Details</h3>
                         <div className="grid grid-cols-2 gap-y-4 gap-x-2">
                           <div>
@@ -1408,16 +1503,16 @@ export default function Members() {
                         </div>
                       </div>
 
-                      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                      <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-lg">
                         <h3 className="font-bold text-slate-800 mb-4 border-b pb-2">Plan Details</h3>
                         <div className="grid grid-cols-2 gap-y-4 gap-x-2">
                           <div>
                             <p className="text-xs text-slate-500 uppercase tracking-wider">Total Active Plans</p>
-                            <p className="font-semibold text-[#003366]">{totalActivePlans}</p>
+                            <p className="font-semibold text-[#16A34A]">{totalActivePlans}</p>
                           </div>
                           <div>
                             <p className="text-xs text-slate-500 uppercase tracking-wider">Total Daily Amount</p>
-                            <p className="font-semibold text-[#003366]">₹{totalDailyAmount}</p>
+                            <p className="font-semibold text-[#16A34A]">₹{totalDailyAmount}</p>
                           </div>
                           <div>
                             <p className="text-xs text-slate-500 uppercase tracking-wider">Plan Amount</p>
@@ -1454,7 +1549,7 @@ export default function Members() {
                         </div>
                       </div>
 
-                      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                      <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-lg">
                         <div className="flex justify-between items-center mb-4 border-b pb-2">
                           <h3 className="font-bold text-slate-800">Active Plans & Management</h3>
                           {(user?.role === "Super Admin" || user?.role === "Administrator") && (
@@ -1465,7 +1560,7 @@ export default function Members() {
                                   showNotification("New ₹127 Plan added successfully!");
                                 }
                               }}
-                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-md shadow-sm transition-colors"
+                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-md shadow-lg transition-colors"
                             >
                               + Add ₹127 Plan
                             </button>
@@ -1543,7 +1638,7 @@ export default function Members() {
                    </div>
 
                    <div className="space-y-6">
-                      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                      <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-lg">
                         <h3 className="font-bold text-slate-800 mb-4 border-b pb-2">Financial Summary</h3>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
@@ -1575,7 +1670,7 @@ export default function Members() {
                           <div className="col-span-2 grid grid-cols-4 gap-2 mt-2 pt-3 border-t border-slate-100">
                             <div>
                               <p className="text-xs text-slate-500 uppercase tracking-wider">Total Savings</p>
-                              <p className="font-bold text-[#003366]">₹{totalSavings}</p>
+                              <p className="font-bold text-[#16A34A]">₹{totalSavings}</p>
                             </div>
                             <div>
                               <p className="text-xs text-slate-500 uppercase tracking-wider">Total Bonus</p>
@@ -1601,9 +1696,9 @@ export default function Members() {
 
               <div>
                 <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Payment History</h3>
-                <div className="overflow-x-auto rounded-lg border border-slate-200">
+                <div className="overflow-x-auto rounded-lg border border-slate-100">
                   <table className="w-full text-left text-sm whitespace-nowrap">
-                    <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200">
+                    <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-100">
                       <tr>
                         <th className="px-4 py-3">Date</th>
                         <th className="px-4 py-3">Receipt No</th>
@@ -1638,7 +1733,7 @@ export default function Members() {
                                   alert("Member phone number not found.");
                                 }
                               }} className="text-emerald-600 hover:text-emerald-800 p-1 mr-1" title="Send WhatsApp Receipt"><MessageCircle className="w-4 h-4" /></button>
-                              <button onClick={() => downloadReceiptPDF(c)} className="text-[#003366] hover:text-blue-800 p-1" title="Download PDF"><Download className="w-4 h-4" /></button>
+                              <button onClick={() => downloadReceiptPDF(c)} className="text-[#16A34A] hover:text-blue-800 p-1" title="Download PDF"><Download className="w-4 h-4" /></button>
                               <button onClick={() => window.print()} className="text-slate-500 hover:text-slate-800 p-1 ml-1" title="Print Receipt"><Printer className="w-4 h-4" /></button>
                             </td>
                           </tr>
@@ -1655,7 +1750,7 @@ export default function Members() {
               </div>
             </div>
             
-            <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end shrink-0 rounded-b-xl">
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end shrink-0 rounded-b-xl">
                <button
                   onClick={handleCloseProfile}
                   className="px-5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50"
@@ -1671,7 +1766,7 @@ export default function Members() {
       {/* Delete Confirmation Modal */}
       {deleteConfirmId && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl max-w-md w-full shadow-xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6">
               <div className="flex items-center gap-4 text-red-600 mb-4">
                 <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center shrink-0">
@@ -1696,11 +1791,80 @@ export default function Members() {
                 <button
                   type="button"
                   onClick={confirmDelete}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors shadow-lg"
                 >
                   Delete
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Reset Password Modal */}
+      {resetPasswordFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Reset Password</h3>
+              <p className="text-sm text-slate-500 mb-6">Resetting password for {resetPasswordFor.name}</p>
+              
+              {resetPasswordError && (
+                <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg border border-red-100 mb-4 text-center">
+                  {resetPasswordError}
+                </div>
+              )}
+              
+              <form onSubmit={handleAdminResetPassword} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">Current Admin Password</label>
+                  <input
+                    type="password"
+                    required
+                    value={adminPasswordInput}
+                    onChange={(e) => setAdminPasswordInput(e.target.value)}
+                    className="mt-1 focus:ring-[#003366] focus:border-[#003366] block w-full sm:text-sm border-slate-300 rounded-lg py-2.5 border bg-slate-50 outline-none"
+                    placeholder="Enter your admin password"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">New Password</label>
+                  <input
+                    type="text"
+                    required
+                    value={newPasswordInput}
+                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                    className="mt-1 focus:ring-[#003366] focus:border-[#003366] block w-full sm:text-sm border-slate-300 rounded-lg py-2.5 border bg-slate-50 outline-none"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special character.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">Confirm New Password</label>
+                  <input
+                    type="text"
+                    required
+                    value={confirmNewPasswordInput}
+                    onChange={(e) => setConfirmNewPasswordInput(e.target.value)}
+                    className="mt-1 focus:ring-[#003366] focus:border-[#003366] block w-full sm:text-sm border-slate-300 rounded-lg py-2.5 border bg-slate-50 outline-none"
+                  />
+                </div>
+                
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setResetPasswordFor(null)}
+                    className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-[#16A34A] to-[#14532d] rounded-lg hover:from-[#15803d] hover:to-[#166534] transition-colors shadow-lg"
+                  >
+                    Reset Password
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

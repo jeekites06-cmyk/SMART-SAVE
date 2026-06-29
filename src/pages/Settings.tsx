@@ -22,14 +22,18 @@ import {
   Lock,
   MessageSquare,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  Clock
 } from "lucide-react";
 import { useData } from "../context/DataContext";
+import { useAuth } from "../context/AuthContext";
 
 export default function Settings() {
+  const { user } = useAuth();
   const {
     settings,
     auditLogs,
+    loginHistory,
     updateSettings,
     backupData,
     restoreData,
@@ -78,9 +82,15 @@ export default function Settings() {
     autoReceiptNumber: settings?.autoReceiptNumber !== false,
 
     adminUsername: settings?.adminUsername || "smartadmin",
-    adminPassword: settings?.adminPassword || "Admin@2026",
+    adminPassword: settings?.adminPassword || "Ani@2024",
     employeePasswordReset: settings?.employeePasswordReset || "emp123",
     sessionTimeout: settings?.sessionTimeout || "15",
+    
+    // New Security Module Fields
+    sessionTimeoutValue: settings?.sessionTimeoutValue || "30",
+    autoLogoutEnabled: settings?.autoLogoutEnabled ?? true,
+    logoutOnBrowserClose: settings?.logoutOnBrowserClose ?? false,
+    maxFailedLoginAttempts: settings?.maxFailedLoginAttempts || 5,
 
     autoBackup: settings?.autoBackup !== false,
     backupInterval: settings?.backupInterval || "Daily",
@@ -186,7 +196,7 @@ export default function Settings() {
     <div className="space-y-6">
       {/* Page Title & Subtitle */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Company Settings</h1>
+        <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#4F46E5] to-[#312e81]">Company Settings</h1>
         <p className="text-slate-500 text-sm mt-1">
           Configure general info, financial parameters, custom PDF branding, admin access, backups and automatic alerts.
         </p>
@@ -194,7 +204,7 @@ export default function Settings() {
 
       {/* Success Notification Banner */}
       {successMsg && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg flex items-center gap-2.5 shadow-sm animate-in fade-in slide-in-from-top-4">
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg flex items-center gap-2.5 shadow-lg animate-in fade-in slide-in-from-top-4">
           <CheckCircle className="w-5 h-5 text-emerald-600" />
           <span className="text-sm font-medium">{successMsg}</span>
         </div>
@@ -204,8 +214,8 @@ export default function Settings() {
       <div className="flex flex-col lg:flex-row gap-6 items-start">
         {/* Navigation Sidebar */}
         <div className="w-full lg:w-64 shrink-0">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="p-4 bg-slate-50 border-b border-slate-200">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+            <div className="p-4 bg-slate-50 border-b border-slate-100">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                 Configuration Tabs
               </span>
@@ -216,7 +226,7 @@ export default function Settings() {
                 onClick={() => setActiveTab("general")}
                 className={`flex items-center gap-3 px-4 py-3 font-medium text-xs sm:text-sm text-left transition-all ${
                   activeTab === "general"
-                    ? "bg-blue-50/70 text-[#003366] border-l-4 border-[#003366] font-bold"
+                    ? "bg-[#E0E7FF] text-[#4F46E5] border-l-4 border-[#4F46E5] font-bold"
                     : "text-slate-600 hover:bg-slate-50 border-l-4 border-transparent"
                 }`}
               >
@@ -229,7 +239,7 @@ export default function Settings() {
                 onClick={() => setActiveTab("financial")}
                 className={`flex items-center gap-3 px-4 py-3 font-medium text-xs sm:text-sm text-left transition-all ${
                   activeTab === "financial"
-                    ? "bg-blue-50/70 text-[#003366] border-l-4 border-[#003366] font-bold"
+                    ? "bg-[#E0E7FF] text-[#4F46E5] border-l-4 border-[#4F46E5] font-bold"
                     : "text-slate-600 hover:bg-slate-50 border-l-4 border-transparent"
                 }`}
               >
@@ -242,7 +252,7 @@ export default function Settings() {
                 onClick={() => setActiveTab("receipt")}
                 className={`flex items-center gap-3 px-4 py-3 font-medium text-xs sm:text-sm text-left transition-all ${
                   activeTab === "receipt"
-                    ? "bg-blue-50/70 text-[#003366] border-l-4 border-[#003366] font-bold"
+                    ? "bg-[#E0E7FF] text-[#4F46E5] border-l-4 border-[#4F46E5] font-bold"
                     : "text-slate-600 hover:bg-slate-50 border-l-4 border-transparent"
                 }`}
               >
@@ -255,7 +265,7 @@ export default function Settings() {
                 onClick={() => setActiveTab("user")}
                 className={`flex items-center gap-3 px-4 py-3 font-medium text-xs sm:text-sm text-left transition-all ${
                   activeTab === "user"
-                    ? "bg-blue-50/70 text-[#003366] border-l-4 border-[#003366] font-bold"
+                    ? "bg-[#E0E7FF] text-[#4F46E5] border-l-4 border-[#4F46E5] font-bold"
                     : "text-slate-600 hover:bg-slate-50 border-l-4 border-transparent"
                 }`}
               >
@@ -268,7 +278,7 @@ export default function Settings() {
                 onClick={() => setActiveTab("backup")}
                 className={`flex items-center gap-3 px-4 py-3 font-medium text-xs sm:text-sm text-left transition-all ${
                   activeTab === "backup"
-                    ? "bg-blue-50/70 text-[#003366] border-l-4 border-[#003366] font-bold"
+                    ? "bg-[#E0E7FF] text-[#4F46E5] border-l-4 border-[#4F46E5] font-bold"
                     : "text-slate-600 hover:bg-slate-50 border-l-4 border-transparent"
                 }`}
               >
@@ -281,7 +291,7 @@ export default function Settings() {
                 onClick={() => setActiveTab("notification")}
                 className={`flex items-center gap-3 px-4 py-3 font-medium text-xs sm:text-sm text-left transition-all ${
                   activeTab === "notification"
-                    ? "bg-blue-50/70 text-[#003366] border-l-4 border-[#003366] font-bold"
+                    ? "bg-[#E0E7FF] text-[#4F46E5] border-l-4 border-[#4F46E5] font-bold"
                     : "text-slate-600 hover:bg-slate-50 border-l-4 border-transparent"
                 }`}
               >
@@ -294,7 +304,7 @@ export default function Settings() {
                 onClick={() => setActiveTab("audit")}
                 className={`flex items-center gap-3 px-4 py-3 font-medium text-xs sm:text-sm text-left transition-all ${
                   activeTab === "audit"
-                    ? "bg-blue-50/70 text-[#003366] border-l-4 border-[#003366] font-bold"
+                    ? "bg-[#E0E7FF] text-[#4F46E5] border-l-4 border-[#4F46E5] font-bold"
                     : "text-slate-600 hover:bg-slate-50 border-l-4 border-transparent"
                 }`}
               >
@@ -306,7 +316,7 @@ export default function Settings() {
         </div>
 
         {/* Dynamic Tab Content Area */}
-        <div className="flex-1 w-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-[480px] flex flex-col justify-between">
+        <div className="flex-1 w-full bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden min-h-[480px] flex flex-col justify-between">
           <div className="p-6">
             {/* TAB 1: GENERAL PROFILE */}
             {activeTab === "general" && (
@@ -318,7 +328,7 @@ export default function Settings() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Company Logo Row with preview */}
-                  <div className="md:col-span-2 bg-slate-50 rounded-lg p-4 border border-slate-200 flex flex-col sm:flex-row items-center gap-4">
+                  <div className="md:col-span-2 bg-slate-50 rounded-lg p-4 border border-slate-100 flex flex-col sm:flex-row items-center gap-4">
                     <div className="w-16 h-16 rounded-lg border border-slate-300 bg-white flex items-center justify-center overflow-hidden shrink-0">
                       {formData.companyLogo ? (
                         <img
@@ -336,7 +346,7 @@ export default function Settings() {
                         Upload custom logo to print directly on payment invoice receipts (suggested 1:1 format).
                       </p>
                       <div className="flex flex-wrap gap-2 justify-center sm:justify-start pt-1">
-                        <label className="bg-[#003366] hover:bg-[#004080] text-white px-2.5 py-1 rounded text-xs font-medium cursor-pointer transition-colors flex items-center gap-1">
+                        <label className="bg-gradient-to-r from-[#4F46E5] to-[#312e81] hover:from-[#4338ca] hover:to-[#3730a3] text-white px-2.5 py-1 rounded text-xs font-medium cursor-pointer transition-colors flex items-center gap-1">
                           <Upload className="w-3 h-3" /> Upload Logo
                           <input
                             type="file"
@@ -366,7 +376,7 @@ export default function Settings() {
                       value={formData.companyName}
                       onChange={handleChange}
                       placeholder="e.g. Smart Save Financial Systems"
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                      className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border"
                     />
                   </div>
 
@@ -378,7 +388,7 @@ export default function Settings() {
                       value={formData.registrationNumber}
                       onChange={handleChange}
                       placeholder="e.g. REG-2024-8899"
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                      className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border"
                     />
                   </div>
 
@@ -392,7 +402,7 @@ export default function Settings() {
                         value={formData.supportPhone}
                         onChange={handleChange}
                         placeholder="e.g. +91 1800 123 4567"
-                        className="w-full border-slate-200 pl-10 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                        className="w-full border-slate-100 pl-10 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border"
                       />
                     </div>
                   </div>
@@ -407,7 +417,7 @@ export default function Settings() {
                         value={formData.contactEmail}
                         onChange={handleChange}
                         placeholder="e.g. support@smartsave.com"
-                        className="w-full border-slate-200 pl-10 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                        className="w-full border-slate-100 pl-10 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border"
                       />
                     </div>
                   </div>
@@ -422,7 +432,7 @@ export default function Settings() {
                         value={formData.website}
                         onChange={handleChange}
                         placeholder="e.g. https://www.smartsave.com"
-                        className="w-full border-slate-200 pl-10 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                        className="w-full border-slate-100 pl-10 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border"
                       />
                     </div>
                   </div>
@@ -435,7 +445,7 @@ export default function Settings() {
                       value={formData.gstNumber}
                       onChange={handleChange}
                       placeholder="e.g. 29GGGGG1314R9Z6"
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                      className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border"
                     />
                   </div>
 
@@ -447,7 +457,7 @@ export default function Settings() {
                       value={formData.address}
                       onChange={handleChange}
                       placeholder="Enter complete company registered headquarters address..."
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border resize-none"
+                      className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border resize-none"
                     />
                   </div>
                 </div>
@@ -471,7 +481,7 @@ export default function Settings() {
                       value="2500"
                       readOnly
                       disabled
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-100 border text-right font-medium text-slate-500 cursor-not-allowed"
+                      className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-100 border text-right font-medium text-slate-500 cursor-not-allowed"
                     />
                   </div>
 
@@ -483,7 +493,7 @@ export default function Settings() {
                       value="127"
                       readOnly
                       disabled
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-100 border text-right font-medium text-slate-500 cursor-not-allowed"
+                      className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-100 border text-right font-medium text-slate-500 cursor-not-allowed"
                     />
                   </div>
 
@@ -495,7 +505,7 @@ export default function Settings() {
                       value="102"
                       readOnly
                       disabled
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-100 border text-right font-medium text-slate-500 cursor-not-allowed"
+                      className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-100 border text-right font-medium text-slate-500 cursor-not-allowed"
                     />
                   </div>
 
@@ -507,7 +517,7 @@ export default function Settings() {
                       value="25"
                       readOnly
                       disabled
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-100 border text-right font-medium text-slate-500 cursor-not-allowed"
+                      className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-100 border text-right font-medium text-slate-500 cursor-not-allowed"
                     />
                   </div>
 
@@ -519,7 +529,7 @@ export default function Settings() {
                       value={formData.employeeCommissionPerCollection}
                       onChange={handleChange}
                       placeholder="e.g. 5"
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border text-right"
+                      className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border text-right"
                     />
                   </div>
 
@@ -531,7 +541,7 @@ export default function Settings() {
                       value={formData.lateFeePenalty}
                       onChange={handleChange}
                       placeholder="e.g. 300"
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border text-right"
+                      className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border text-right"
                     />
                   </div>
 
@@ -543,7 +553,7 @@ export default function Settings() {
                       value={formData.gracePeriod}
                       onChange={handleChange}
                       placeholder="e.g. 30"
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border text-right"
+                      className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border text-right"
                     />
                   </div>
                 </div>
@@ -568,7 +578,7 @@ export default function Settings() {
                         value={formData.receiptPrefix}
                         onChange={handleChange}
                         placeholder="e.g. RCT"
-                        className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                        className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border"
                       />
                     </div>
 
@@ -579,7 +589,7 @@ export default function Settings() {
                           name="autoReceiptNumber"
                           checked={formData.autoReceiptNumber}
                           onChange={(e) => handleToggle("autoReceiptNumber", e.target.checked)}
-                          className="rounded border-slate-300 text-[#003366] focus:ring-[#003366] w-4.5 h-4.5"
+                          className="rounded border-slate-300 text-[#4F46E5] focus:ring-[#003366] w-4.5 h-4.5"
                         />
                         <span>Enable Auto Receipt Serialization</span>
                       </label>
@@ -597,14 +607,14 @@ export default function Settings() {
                       value={formData.receiptFooter}
                       onChange={handleChange}
                       placeholder="Disclaimer shown at the bottom of printed receipts..."
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border resize-none"
+                      className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border resize-none"
                     />
                   </div>
 
                   {/* Stamp & Authorized Signature upload blocks */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                     {/* Stamp */}
-                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-200 flex flex-col gap-3">
+                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-100 flex flex-col gap-3">
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-bold text-slate-700">Official Company Stamp</span>
                         {formData.companyStamp && (
@@ -633,7 +643,7 @@ export default function Settings() {
                         )}
                       </div>
 
-                      <label className="w-full bg-[#003366] hover:bg-[#004080] text-white py-1.5 rounded text-xs font-semibold text-center cursor-pointer transition-colors block">
+                      <label className="w-full bg-gradient-to-r from-[#4F46E5] to-[#312e81] hover:from-[#4338ca] hover:to-[#3730a3] text-white py-1.5 rounded text-xs font-semibold text-center cursor-pointer transition-colors block">
                         Upload Stamp Image
                         <input
                           type="file"
@@ -645,7 +655,7 @@ export default function Settings() {
                     </div>
 
                     {/* Signature */}
-                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-200 flex flex-col gap-3">
+                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-100 flex flex-col gap-3">
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-bold text-slate-700">Authorized Signature</span>
                         {formData.authorizedSignature && (
@@ -674,7 +684,7 @@ export default function Settings() {
                         )}
                       </div>
 
-                      <label className="w-full bg-[#003366] hover:bg-[#004080] text-white py-1.5 rounded text-xs font-semibold text-center cursor-pointer transition-colors block">
+                      <label className="w-full bg-gradient-to-r from-[#4F46E5] to-[#312e81] hover:from-[#4338ca] hover:to-[#3730a3] text-white py-1.5 rounded text-xs font-semibold text-center cursor-pointer transition-colors block">
                         Upload Signature Image
                         <input
                           type="file"
@@ -708,7 +718,7 @@ export default function Settings() {
                         value={formData.adminUsername}
                         onChange={handleChange}
                         placeholder="Admin Username"
-                        className="w-full border-slate-200 pl-10 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                        className="w-full border-slate-100 pl-10 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border"
                       />
                     </div>
                   </div>
@@ -723,7 +733,7 @@ export default function Settings() {
                         value={formData.adminPassword}
                         onChange={handleChange}
                         placeholder="Enter system master password"
-                        className="w-full border-slate-200 pl-10 pr-10 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                        className="w-full border-slate-100 pl-10 pr-10 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border"
                       />
                       <button
                         type="button"
@@ -743,34 +753,84 @@ export default function Settings() {
                       value={formData.employeePasswordReset}
                       onChange={handleChange}
                       placeholder="e.g. emp123"
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                      className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border"
                     />
                     <p className="text-[10px] text-slate-400 mt-1">
                       The default fallback password applied to employee logins during instant reset actions below.
                     </p>
                   </div>
+                </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Session Inactivity Timeout (Minutes) *</label>
-                    <input
-                      type="number"
-                      name="sessionTimeout"
-                      value={formData.sessionTimeout}
-                      onChange={handleChange}
-                      placeholder="e.g. 15"
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border text-right"
-                    />
+                <div className="border-t border-slate-100 pt-6">
+                  <h3 className="text-sm font-bold text-slate-800 mb-4">Advanced Security Module</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Session Inactivity Timeout *</label>
+                      <select
+                        name="sessionTimeoutValue"
+                        value={formData.sessionTimeoutValue}
+                        onChange={handleChange}
+                        className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border"
+                      >
+                        <option value="15">15 Minutes</option>
+                        <option value="30">30 Minutes</option>
+                        <option value="60">60 Minutes</option>
+                        <option value="Never">Never</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Max Failed Login Attempts *</label>
+                      <input
+                        type="number"
+                        name="maxFailedLoginAttempts"
+                        value={formData.maxFailedLoginAttempts}
+                        onChange={handleChange}
+                        placeholder="e.g. 5"
+                        min="1"
+                        max="20"
+                        className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.autoLogoutEnabled}
+                        onChange={(e) => setFormData({ ...formData, autoLogoutEnabled: e.target.checked })}
+                        className="w-4 h-4 text-[#4F46E5] rounded border-slate-300 focus:ring-[#003366]"
+                      />
+                      <div>
+                        <span className="block text-sm font-medium text-slate-700">Enable Auto Logout</span>
+                        <span className="block text-[10px] text-slate-500">Automatically log out users when session expires</span>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.logoutOnBrowserClose}
+                        onChange={(e) => setFormData({ ...formData, logoutOnBrowserClose: e.target.checked })}
+                        className="w-4 h-4 text-[#4F46E5] rounded border-slate-300 focus:ring-[#003366]"
+                      />
+                      <div>
+                        <span className="block text-sm font-medium text-slate-700">Logout on Browser Close</span>
+                        <span className="block text-[10px] text-slate-500">Log out when the browser window is closed</span>
+                      </div>
+                    </label>
                   </div>
                 </div>
 
                 {/* Sub section: Live Password Reset Actions panel */}
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3">
+                <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4 space-y-3">
                   <div className="flex justify-between items-center">
                     <div>
                       <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Employee Access Controls</h4>
                       <p className="text-[10px] text-slate-500">Instantly reset active staff passwords to your default fallback above.</p>
                     </div>
-                    <span className="text-[10px] text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full font-bold">
+                    <span className="text-[10px] text-[#312e81] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full font-bold">
                       {employees.length} Staff Profiles
                     </span>
                   </div>
@@ -789,7 +849,7 @@ export default function Settings() {
                           <button
                             type="button"
                             onClick={() => handleResetEmployeePassword(emp.id, emp.name)}
-                            className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-1 rounded text-[11px] font-bold flex items-center gap-1 transition-colors hover:border-slate-300 shadow-sm"
+                            className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-100 px-2.5 py-1 rounded text-[11px] font-bold flex items-center gap-1 transition-colors hover:border-slate-300 shadow-lg"
                           >
                             <RefreshCw className="w-3 h-3 text-blue-500" />
                             Reset Password
@@ -822,7 +882,7 @@ export default function Settings() {
                         name="autoBackup"
                         checked={formData.autoBackup}
                         onChange={(e) => handleToggle("autoBackup", e.target.checked)}
-                        className="rounded border-slate-300 text-[#003366] focus:ring-[#003366] w-4.5 h-4.5"
+                        className="rounded border-slate-300 text-[#4F46E5] focus:ring-[#003366] w-4.5 h-4.5"
                       />
                       <span>Enable Scheduled Auto Backup</span>
                     </label>
@@ -837,7 +897,7 @@ export default function Settings() {
                       name="backupInterval"
                       value={formData.backupInterval}
                       onChange={handleChange}
-                      className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                      className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border"
                     >
                       <option value="Daily">Daily (Every 24 Hours)</option>
                       <option value="Weekly">Weekly (Every 7 Days)</option>
@@ -848,10 +908,10 @@ export default function Settings() {
 
                 {/* DB Actions Panel */}
                 <div className="border-t border-slate-100 pt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/40 flex flex-col justify-between gap-3">
+                  <div className="p-4 rounded-2xl border border-blue-100 bg-blue-50/40 flex flex-col justify-between gap-3">
                     <div>
                       <h4 className="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
-                        <Database className="w-4 h-4 text-blue-600" /> Export Database
+                        <Database className="w-4 h-4 text-[#4F46E5]" /> Export Database
                       </h4>
                       <p className="text-[11px] text-slate-500 mt-1">
                         Download a complete schema JSON package of all active collections, employees, logins, and members.
@@ -860,14 +920,14 @@ export default function Settings() {
                     <button
                       type="button"
                       onClick={backupData}
-                      className="w-full bg-[#003366] hover:bg-[#004080] text-white py-2 rounded text-xs font-semibold shadow-sm transition-colors flex items-center justify-center gap-1.5"
+                      className="w-full bg-gradient-to-r from-[#4F46E5] to-[#312e81] hover:from-[#4338ca] hover:to-[#3730a3] text-white py-2 rounded text-xs font-semibold shadow-lg transition-colors flex items-center justify-center gap-1.5"
                     >
                       <Download className="w-3.5 h-3.5" />
                       Export / Download JSON
                     </button>
                   </div>
 
-                  <div className="p-4 rounded-xl border border-amber-100 bg-amber-50/40 flex flex-col justify-between gap-3">
+                  <div className="p-4 rounded-2xl border border-amber-100 bg-amber-50/40 flex flex-col justify-between gap-3">
                     <div>
                       <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
                         <AlertTriangle className="w-4 h-4 text-amber-600" /> Restore / Import Database
@@ -876,7 +936,7 @@ export default function Settings() {
                         Warning: Restoring data completely replaces and wipes existing records with the uploaded JSON backup package.
                       </p>
                     </div>
-                    <label className="w-full bg-amber-600 hover:bg-amber-700 text-white py-2 rounded text-xs font-semibold text-center cursor-pointer shadow-sm transition-colors block">
+                    <label className="w-full bg-amber-600 hover:bg-amber-700 text-white py-2 rounded text-xs font-semibold text-center cursor-pointer shadow-lg transition-colors block">
                       Import / Restore JSON
                       <input
                         type="file"
@@ -900,7 +960,7 @@ export default function Settings() {
 
                 <div className="space-y-4">
                   {/* WhatsApp */}
-                  <div className="flex items-start justify-between p-3.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
+                  <div className="flex items-start justify-between p-3.5 border border-slate-100 rounded-2xl hover:bg-slate-50 transition-colors">
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
@@ -922,7 +982,7 @@ export default function Settings() {
                   </div>
 
                   {/* SMS */}
-                  <div className="flex items-start justify-between p-3.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
+                  <div className="flex items-start justify-between p-3.5 border border-slate-100 rounded-2xl hover:bg-slate-50 transition-colors">
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-blue-500"></span>
@@ -939,12 +999,12 @@ export default function Settings() {
                         onChange={(e) => handleToggle("smsEnabled", e.target.checked)}
                         className="sr-only peer"
                       />
-                      <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#4F46E5]"></div>
                     </label>
                   </div>
 
                   {/* Email */}
-                  <div className="flex items-start justify-between p-3.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
+                  <div className="flex items-start justify-between p-3.5 border border-slate-100 rounded-2xl hover:bg-slate-50 transition-colors">
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
@@ -972,7 +1032,7 @@ export default function Settings() {
                         name="paymentReminderDays"
                         value={formData.paymentReminderDays}
                         onChange={handleChange}
-                        className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                        className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border"
                       >
                         <option value="0">Same Day (Collection Date)</option>
                         <option value="1">1 Day Before Due Date</option>
@@ -987,7 +1047,7 @@ export default function Settings() {
                         name="maturityReminderDays"
                         value={formData.maturityReminderDays}
                         onChange={handleChange}
-                        className="w-full border-slate-200 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#003366] border"
+                        className="w-full border-slate-100 rounded-lg text-sm outline-none p-2.5 bg-slate-50 focus:bg-white focus:border-[#4F46E5] border"
                       >
                         <option value="3">3 Days Before Plan Expiry</option>
                         <option value="7">7 Days Before Plan Expiry</option>
@@ -1013,10 +1073,10 @@ export default function Settings() {
                   </span>
                 </div>
 
-                <div className="border border-slate-200 rounded-xl overflow-hidden shadow-inner bg-slate-50">
+                <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-inner bg-slate-50">
                   <div className="overflow-y-auto max-h-[360px]">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-white border-b border-slate-200 text-slate-400 font-bold uppercase sticky top-0">
+                      <thead className="bg-white border-b border-slate-100 text-slate-400 font-bold uppercase sticky top-0">
                         <tr>
                           <th className="px-4 py-3">Timestamp</th>
                           <th className="px-4 py-3">Action</th>
@@ -1055,11 +1115,11 @@ export default function Settings() {
 
           {/* Action Footer */}
           {activeTab !== "audit" && (
-            <div className="p-6 border-t border-slate-200 bg-slate-50 flex justify-end">
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
               <button
                 onClick={handleSave}
                 type="button"
-                className="px-6 py-2 bg-[#003366] border border-transparent rounded-lg text-sm font-semibold text-white hover:bg-[#004080] transition-colors shadow-sm flex items-center gap-2"
+                className="px-6 py-2 bg-gradient-to-r from-[#4F46E5] to-[#312e81] border border-transparent rounded-lg text-sm font-semibold text-white hover:from-[#4338ca] hover:to-[#3730a3] transition-colors shadow-lg flex items-center gap-2"
               >
                 <Save className="w-4 h-4" /> Save Changes
               </button>

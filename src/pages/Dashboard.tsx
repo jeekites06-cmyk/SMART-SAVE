@@ -330,7 +330,7 @@ export default function Dashboard() {
       value: `₹${todayCollection.toLocaleString()}`,
       change: "",
       subtext: `Today's total`,
-      subtextClass: "text-blue-600 font-medium",
+      subtextClass: "text-[#2563EB] font-medium",
       highlight: "",
       path: "/daily-collection",
     },
@@ -364,7 +364,7 @@ export default function Dashboard() {
     {
       name: "Total Company Revenue",
       value: `₹${totalCompanyRevenue.toLocaleString()}`,
-      valueClass: "text-blue-700",
+      valueClass: "text-[#1e40af]",
       change: "",
       subtext: "Reg + Profit",
       subtextClass: "text-emerald-600",
@@ -403,7 +403,7 @@ export default function Dashboard() {
       value: `₹${totalCommissionPaid.toLocaleString()}`,
       change: "",
       subtext: "Paid commission",
-      subtextClass: "text-blue-600 font-medium",
+      subtextClass: "text-[#2563EB] font-medium",
       highlight: "border-l-4 border-l-blue-400",
       path: "/commissions",
     },
@@ -425,7 +425,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">
+          <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#2563EB] to-[#1e40af]">
             Dashboard Overview
           </h1>
           <p className="text-slate-500 text-sm mt-1">
@@ -435,11 +435,11 @@ export default function Dashboard() {
         <div className="flex gap-2">
           <button 
             onClick={handleGenerateDailyReport}
-            className="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm"
+            className="bg-white border border-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors shadow-lg"
           >
             Download Report
           </button>
-          <button className="bg-[#003366] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#004080] transition-colors shadow-sm flex items-center gap-2">
+          <button className="bg-gradient-to-r from-[#2563EB] to-[#1e40af] text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-[#1d4ed8] hover:to-[#1e3a8a] transition-colors shadow-lg flex items-center gap-2">
             <IndianRupee className="w-4 h-4" />
             New Collection
           </button>
@@ -453,7 +453,7 @@ export default function Dashboard() {
             <Link
               key={stat.name}
               to={stat.path}
-              className={`bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer block ${stat.highlight || ""}`}
+              className={`bg-white rounded-2xl border border-slate-100 p-5 shadow-lg hover:shadow-md transition-shadow cursor-pointer block ${stat.highlight || ""}`}
             >
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
                 {stat.name}
@@ -492,7 +492,7 @@ export default function Dashboard() {
         {/* Monthly Collection Trend */}
         <Link
           to="/reports?type=Monthly Report"
-          className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow block cursor-pointer"
+          className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-6 shadow-lg hover:shadow-md transition-shadow block cursor-pointer"
         >
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-bold text-slate-800">
@@ -501,7 +501,7 @@ export default function Dashboard() {
             <select
               onClick={(e) => e.stopPropagation()}
               onChange={(e) => e.stopPropagation()}
-              className="text-xs border-slate-200 rounded px-2 py-1 outline-none text-slate-600 bg-slate-50 cursor-default"
+              className="text-xs border-slate-100 rounded px-2 py-1 outline-none text-slate-600 bg-slate-50 cursor-default"
             >
               <option>Last 6 Months</option>
             </select>
@@ -510,14 +510,14 @@ export default function Dashboard() {
             {chartData.map((data, i) => (
               <div
                 key={i}
-                className={`w-12 sm:w-16 rounded-t-lg relative group transition-colors ${i === chartData.length - 1 ? "bg-blue-600" : i === chartData.length - 2 ? "bg-blue-400" : "bg-slate-100 hover:bg-blue-200"}`}
+                className={`w-12 sm:w-16 rounded-t-lg relative group transition-colors ${i === chartData.length - 1 ? "bg-[#2563EB]" : i === chartData.length - 2 ? "bg-blue-400" : "bg-slate-100 hover:bg-blue-200"}`}
                 style={{
                   height: `${(data.total / maxChartValue) * 100}%`,
                   minHeight: data.total > 0 ? "10px" : "0",
                 }}
               >
                 <span
-                  className={`absolute -top-6 left-0 right-0 text-center text-[10px] hidden group-hover:block ${i === chartData.length - 1 ? "font-bold text-blue-700" : i === chartData.length - 2 ? "text-blue-600" : ""}`}
+                  className={`absolute -top-6 left-0 right-0 text-center text-[10px] hidden group-hover:block ${i === chartData.length - 1 ? "font-bold text-[#1e40af]" : i === chartData.length - 2 ? "text-[#2563EB]" : ""}`}
                 >
                   ₹
                   {data.total >= 1000
@@ -535,10 +535,10 @@ export default function Dashboard() {
         </Link>
 
          {/* Recent Members */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-lg flex flex-col hover:shadow-md transition-shadow">
           <div className="p-5 border-b border-slate-100 flex justify-between items-center">
             <h3 className="font-bold text-slate-800">Recent Members</h3>
-            <Link to="/members" className="text-xs text-blue-600 font-semibold hover:text-blue-800">
+            <Link to="/members" className="text-xs text-[#2563EB] font-semibold hover:text-blue-800">
               View All
             </Link>
           </div>
@@ -550,7 +550,7 @@ export default function Dashboard() {
                   to={`/members?id=${member.id}`}
                   className="flex items-center p-3 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer"
                 >
-                  <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 mr-3 font-bold shrink-0">
+                  <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-[#2563EB] mr-3 font-bold shrink-0">
                     {member.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-grow min-w-0 pr-2">
@@ -586,8 +586,8 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Transactions Table */}
-      <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+      <div className="bg-white rounded-2xl shadow-lg hover:shadow-md transition-shadow border border-slate-100 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
           <h2 className="text-lg font-bold text-slate-800">
             Recent Collections
           </h2>
@@ -652,7 +652,7 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Actions / Bottom Bar */}
-      <div className="bg-blue-700 rounded-xl p-6 text-white flex flex-col md:flex-row items-start md:items-center justify-between shadow-lg shadow-blue-200 gap-4">
+      <div className="bg-gradient-to-r from-[#2563EB] to-[#1e40af] rounded-2xl p-6 text-white flex flex-col md:flex-row items-start md:items-center justify-between shadow-lg shadow-blue-200 gap-4">
         <div>
           <h4 className="text-lg font-bold">
             Ready to process today's collections?
@@ -664,13 +664,13 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
           <button 
             onClick={handleGenerateDailyReport}
-            className="px-6 py-2 bg-white text-blue-700 font-bold rounded-lg shadow-sm hover:bg-blue-50 transition-colors whitespace-nowrap text-sm"
+            className="px-6 py-2 bg-white text-[#1e40af] font-bold rounded-lg shadow-lg hover:bg-blue-50 transition-colors whitespace-nowrap text-sm"
           >
             Generate Daily Report
           </button>
           <button 
             onClick={handleViewAllActions}
-            className="px-6 py-2 bg-blue-500 text-white font-bold rounded-lg border border-blue-400 hover:bg-blue-600 transition-colors whitespace-nowrap text-sm"
+            className="px-6 py-2 bg-blue-500 text-white font-bold rounded-lg border border-blue-400 hover:bg-[#2563EB] transition-colors whitespace-nowrap text-sm"
           >
             View All Actions
           </button>
@@ -679,9 +679,9 @@ export default function Dashboard() {
 
       {showTodayActions && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-5xl w-full max-h-[85vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-5xl w-full max-h-[85vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <div>
                 <h3 className="text-lg font-bold text-slate-800">
                   Today's Collection Activities
@@ -701,10 +701,10 @@ export default function Dashboard() {
             {/* Table / List */}
             <div className="flex-grow overflow-y-auto p-6">
               {todayCollections.length > 0 ? (
-                <div className="border border-slate-200 rounded-lg overflow-hidden">
+                <div className="border border-slate-100 rounded-lg overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
-                      <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200">
+                      <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-100">
                         <tr>
                           <th className="px-6 py-3">Transaction ID / Receipt</th>
                           <th className="px-6 py-3">Member</th>
@@ -764,13 +764,13 @@ export default function Dashboard() {
             <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
               <button
                 onClick={handleGenerateDailyReport}
-                className="px-4 py-2 bg-[#003366] hover:bg-[#004080] text-white text-sm font-semibold rounded-lg shadow-sm transition-colors"
+                className="px-4 py-2 bg-gradient-to-r from-[#2563EB] to-[#1e40af] hover:from-[#1d4ed8] hover:to-[#1e3a8a] text-white text-sm font-semibold rounded-lg shadow-lg transition-colors"
               >
                 Download PDF Report
               </button>
               <button
                 onClick={() => setShowTodayActions(false)}
-                className="px-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-colors"
+                className="px-4 py-2 bg-white border border-slate-100 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-colors"
               >
                 Close
               </button>
