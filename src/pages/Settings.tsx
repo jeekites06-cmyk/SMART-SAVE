@@ -38,7 +38,8 @@ export default function Settings() {
     backupData,
     restoreData,
     employees,
-    updateEmployee
+    updateEmployee,
+    isSupabaseSchemaMissing
   } = useData();
 
   // Active Tab State
@@ -207,6 +208,28 @@ export default function Settings() {
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg flex items-center gap-2.5 shadow-lg animate-in fade-in slide-in-from-top-4">
           <CheckCircle className="w-5 h-5 text-emerald-600" />
           <span className="text-sm font-medium">{successMsg}</span>
+        </div>
+      )}
+
+      {/* Supabase Schema Missing Warning Banner */}
+      {isSupabaseSchemaMissing && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-900 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <span className="text-sm font-bold block">Supabase Connection Notice</span>
+              <span className="text-xs text-slate-600 block mt-0.5">
+                The database tables do not exist in your connected Supabase database yet. The application is running smoothly using <strong>local fallback storage</strong>, so all features are working.
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab("backup")}
+            className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 py-2 rounded-lg shrink-0 transition-colors shadow-sm"
+          >
+            Configure Database
+          </button>
         </div>
       )}
 
@@ -945,6 +968,204 @@ export default function Settings() {
                         className="hidden"
                       />
                     </label>
+                  </div>
+                </div>
+
+                {/* Supabase Schema Setup Card */}
+                <div className="bg-slate-50 rounded-2xl border border-slate-200 p-5 mt-6 space-y-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <Database className="w-4 h-4 text-[#4F46E5]" /> Supabase Live Database Integration
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Connect and synchronize your Smart Save instance directly to your own Supabase project in real-time.
+                      </p>
+                    </div>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${isSupabaseSchemaMissing ? "bg-amber-100 text-amber-800 border border-amber-200" : "bg-emerald-100 text-emerald-800 border border-emerald-200"}`}>
+                      {isSupabaseSchemaMissing ? "⚠️ Schema Setup Required" : "✓ Active / Schema Verified"}
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-slate-600 space-y-2">
+                    <p className="font-semibold">Setup Steps to Configure Your Supabase Database:</p>
+                    <ol className="list-decimal pl-5 space-y-1">
+                      <li>Log in to your <strong>Supabase Dashboard</strong> (supabase.com).</li>
+                      <li>Select your project and click on the <strong>SQL Editor</strong> tab on the left sidebar.</li>
+                      <li>Click <strong>New Query</strong>.</li>
+                      <li>Copy and paste the entire script from the <code>supabase_setup.sql</code> file (located in the root of this project).</li>
+                      <li>Click the <strong>Run</strong> button at the bottom right of the editor.</li>
+                      <li>Refresh this page, and your cloud database will be fully linked with local data auto-migrating seamlessly!</li>
+                    </ol>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`-- SMART SAVE - SUPABASE LIVE DATABASE SCHEMAS
+-- 1. MEMBERS TABLE
+CREATE TABLE IF NOT EXISTS members (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    aadhaar TEXT NOT NULL,
+    address TEXT NOT NULL,
+    plan TEXT NOT NULL,
+    join_date TEXT NOT NULL,
+    daily_amount TEXT NOT NULL,
+    nominee_name TEXT NOT NULL,
+    nominee_phone TEXT NOT NULL,
+    status TEXT NOT NULL,
+    balance TEXT,
+    registered_by TEXT,
+    registration_status TEXT,
+    plan_units INTEGER,
+    photo TEXT,
+    password TEXT,
+    account_status TEXT,
+    failed_login_attempts INTEGER DEFAULT 0,
+    lock_until BIGINT,
+    plans JSONB DEFAULT '[]'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE members DISABLE ROW LEVEL SECURITY;
+
+-- 2. EMPLOYEES TABLE
+CREATE TABLE IF NOT EXISTS employees (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    email TEXT NOT NULL,
+    address TEXT NOT NULL,
+    aadhaar TEXT NOT NULL,
+    designation TEXT NOT NULL,
+    branch TEXT NOT NULL,
+    username TEXT NOT NULL UNIQUE,
+    password TEXT,
+    daily_target TEXT NOT NULL,
+    monthly_salary TEXT NOT NULL,
+    commission_percentage TEXT NOT NULL,
+    registration_commission TEXT,
+    join_date TEXT NOT NULL,
+    status TEXT NOT NULL,
+    photo TEXT,
+    account_status TEXT,
+    failed_login_attempts INTEGER DEFAULT 0,
+    lock_until BIGINT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE employees DISABLE ROW LEVEL SECURITY;
+
+-- 3. COLLECTIONS TABLE
+CREATE TABLE IF NOT EXISTS collections (
+    id TEXT PRIMARY KEY,
+    receipt_no TEXT,
+    member_id TEXT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+    member_name TEXT NOT NULL,
+    amount TEXT NOT NULL,
+    type TEXT NOT NULL,
+    notes TEXT,
+    timestamp TEXT NOT NULL,
+    status TEXT NOT NULL,
+    collected_by TEXT,
+    collected_by_name TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE collections DISABLE ROW LEVEL SECURITY;
+
+-- 4. ATTENDANCE TABLE
+CREATE TABLE IF NOT EXISTS attendance (
+    id TEXT PRIMARY KEY,
+    employee_id TEXT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    date TEXT NOT NULL,
+    status TEXT NOT NULL,
+    check_in TEXT,
+    check_out TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_employee_date UNIQUE (employee_id, date)
+);
+ALTER TABLE attendance DISABLE ROW LEVEL SECURITY;
+
+-- 5. LOGIN HISTORY TABLE
+CREATE TABLE IF NOT EXISTS login_history (
+    id TEXT PRIMARY KEY,
+    employee_id TEXT,
+    username TEXT NOT NULL,
+    role TEXT NOT NULL,
+    login_time TEXT NOT NULL,
+    logout_time TEXT,
+    status TEXT NOT NULL,
+    ip_address TEXT,
+    device TEXT,
+    timestamp TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE login_history DISABLE ROW LEVEL SECURITY;
+
+-- 6. COMMISSION PAYMENTS TABLE
+CREATE TABLE IF NOT EXISTS commission_payments (
+    id TEXT PRIMARY KEY,
+    employee_id TEXT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    employee_name TEXT NOT NULL,
+    amount NUMERIC NOT NULL,
+    payment_date TEXT NOT NULL,
+    reference_number TEXT NOT NULL,
+    remarks TEXT NOT NULL,
+    status TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    period TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE commission_payments DISABLE ROW LEVEL SECURITY;
+
+-- 7. REMINDER HISTORY TABLE
+CREATE TABLE IF NOT EXISTS reminder_history (
+    id TEXT PRIMARY KEY,
+    reminder_date TEXT NOT NULL,
+    member_id TEXT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+    member_name TEXT NOT NULL,
+    due_amount NUMERIC NOT NULL,
+    status TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE reminder_history DISABLE ROW LEVEL SECURITY;
+
+-- 8. AUDIT LOGS TABLE
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id TEXT PRIMARY KEY,
+    action TEXT NOT NULL,
+    details TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    username TEXT,
+    role TEXT,
+    module TEXT,
+    status TEXT,
+    ip_address TEXT,
+    device TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE audit_logs DISABLE ROW LEVEL SECURITY;
+
+-- 9. SETTINGS TABLE
+CREATE TABLE IF NOT EXISTS settings (
+    id TEXT PRIMARY KEY DEFAULT 'company_settings',
+    data JSONB NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
+
+-- Seed Default Admin Employee
+INSERT INTO employees (id, name, phone, email, address, aadhaar, designation, branch, username, password, daily_target, monthly_salary, commission_percentage, join_date, status)
+VALUES ('ADMIN001', 'Super Admin', '0000000000', 'admin@smartsave.com', 'System Administrator', '000000000000', 'Super Admin', 'Head Office', 'smartadmin', 'Ani@2024', '0', '0', '0', '2024-01-01', 'Active')
+ON CONFLICT (username) DO NOTHING;`);
+                        showNotification("SQL Setup Script copied to clipboard!");
+                      }}
+                      className="bg-[#4F46E5] hover:bg-[#4338ca] text-white text-xs font-bold px-4 py-2.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-md"
+                    >
+                      <Save className="w-3.5 h-3.5" /> Copy Complete SQL Setup Script
+                    </button>
                   </div>
                 </div>
               </div>

@@ -41,12 +41,12 @@ export function getMemberDueInfo(member: Member, collections: Collection[], toda
   const memberDailyCols = collections.filter(c => c.memberId === member.id && c.type === "Daily Deposit");
 
   // Today's collections
-  const todayCols = memberDailyCols.filter(c => c.timestamp.startsWith(todayStr));
+  const todayCols = memberDailyCols.filter(c => c.timestamp && c.timestamp.startsWith(todayStr));
   const todayPaidAmount = todayCols.reduce((sum, c) => sum + parseInt(c.amount || "0", 10), 0);
   const paidToday = todayPaidAmount >= totalDailyAmount && totalDailyAmount > 0;
 
   // Yesterday's collections
-  const yesterdayCols = memberDailyCols.filter(c => c.timestamp.startsWith(yesterdayStr));
+  const yesterdayCols = memberDailyCols.filter(c => c.timestamp && c.timestamp.startsWith(yesterdayStr));
   const yesterdayPaidAmount = yesterdayCols.reduce((sum, c) => sum + parseInt(c.amount || "0", 10), 0);
   const paidYesterday = yesterdayPaidAmount >= totalDailyAmount && totalDailyAmount > 0;
 
@@ -68,17 +68,28 @@ export function getMemberDueInfo(member: Member, collections: Collection[], toda
 
   // Calculate consecutive unpaid days
   let consecutiveUnpaidDays = 0;
-  if (memberDailyCols.length > 0) {
-    const sorted = [...memberDailyCols].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    const lastPaymentDateObj = new Date(sorted[0].timestamp);
-    const lastPaymentMidnight = new Date(lastPaymentDateObj.getFullYear(), lastPaymentDateObj.getMonth(), lastPaymentDateObj.getDate());
+  const sortedCollections = [...memberDailyCols]
+    .filter(c => c.timestamp)
+    .sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime());
+
+  if (sortedCollections.length > 0) {
+    const lastPaymentDateObj = new Date(sortedCollections[0].timestamp!);
+    const lastPaymentMidnight = new Date(
+      isNaN(lastPaymentDateObj.getTime()) ? today.getFullYear() : lastPaymentDateObj.getFullYear(),
+      isNaN(lastPaymentDateObj.getTime()) ? today.getMonth() : lastPaymentDateObj.getMonth(),
+      isNaN(lastPaymentDateObj.getTime()) ? today.getDate() : lastPaymentDateObj.getDate()
+    );
     const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const diffTimeUnpaid = todayMidnight.getTime() - lastPaymentMidnight.getTime();
     consecutiveUnpaidDays = Math.max(0, Math.floor(diffTimeUnpaid / (1000 * 60 * 60 * 24)));
   } else {
     // Never paid daily deposit, count from joinDate
-    const joinDateObj = new Date(member.joinDate);
-    const joinMidnight = new Date(joinDateObj.getFullYear(), joinDateObj.getMonth(), joinDateObj.getDate());
+    const joinDateObj = new Date(member.joinDate || todayStr);
+    const joinMidnight = new Date(
+      isNaN(joinDateObj.getTime()) ? today.getFullYear() : joinDateObj.getFullYear(),
+      isNaN(joinDateObj.getTime()) ? today.getMonth() : joinDateObj.getMonth(),
+      isNaN(joinDateObj.getTime()) ? today.getDate() : joinDateObj.getDate()
+    );
     const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const diffTimeUnpaid = todayMidnight.getTime() - joinMidnight.getTime();
     consecutiveUnpaidDays = Math.max(0, Math.floor(diffTimeUnpaid / (1000 * 60 * 60 * 24)));
@@ -110,9 +121,8 @@ export function getMemberDueInfo(member: Member, collections: Collection[], toda
 
   // Last payment date
   let lastPaymentDate = "N/A";
-  if (memberDailyCols.length > 0) {
-    const sorted = [...memberDailyCols].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    lastPaymentDate = new Date(sorted[0].timestamp).toLocaleDateString();
+  if (sortedCollections.length > 0) {
+    lastPaymentDate = new Date(sortedCollections[0].timestamp!).toLocaleDateString();
   }
 
   return {

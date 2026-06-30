@@ -12,6 +12,7 @@ import {
   ReminderHistoryItem,
 } from "../types";
 import { calculateFinancialSummary } from "../utils/finance";
+import { supabaseService } from "../services/supabaseService";
 
 interface DataContextType {
   members: Member[];
@@ -24,6 +25,7 @@ interface DataContextType {
   loginHistory: LoginHistoryRecord[];
   commissionPayments: CommissionPayment[];
   reminderHistory: ReminderHistoryItem[];
+  isSupabaseSchemaMissing: boolean;
   addMember: (member: Omit<Member, "id">) => void;
   updateMember: (id: string, member: Partial<Member>) => void;
   deleteMember: (id: string) => void;
@@ -259,10 +261,89 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     },
   );
 
+  const [isSupabaseSchemaMissing, setIsSupabaseSchemaMissing] = useState(false);
+
   const financialSummary = React.useMemo(
     () => calculateFinancialSummary(collections, members, settings),
     [collections, members, settings],
   );
+
+  // --- Load and Migrate from Supabase on mount ---
+  useEffect(() => {
+    async function loadSupabaseData() {
+      try {
+        // 1. Try migrating localStorage data if Supabase tables are totally empty
+        await supabaseService.migrateLocalDataIfEmpty();
+      } catch (err) {
+        console.warn("Supabase migration notice:", err);
+      }
+
+      try {
+        // 2. Fetch the latest records from Supabase
+        const [
+          dbMembers,
+          dbCollections,
+          dbSettings,
+          dbEmployees,
+          dbAttendance,
+          dbLoginHistory,
+          dbCommissionPayments,
+          dbReminderHistory,
+          dbAuditLogs,
+        ] = await Promise.all([
+          supabaseService.getMembers(),
+          supabaseService.getCollections(),
+          supabaseService.getSettings(),
+          supabaseService.getEmployees(),
+          supabaseService.getAttendance(),
+          supabaseService.getLoginHistory(),
+          supabaseService.getCommissionPayments(),
+          supabaseService.getReminderHistory(),
+          supabaseService.getAuditLogs(),
+        ]);
+
+        if (dbMembers) setMembers(dbMembers);
+        if (dbCollections) setCollections(dbCollections);
+        if (dbSettings) setSettings(dbSettings);
+        if (dbEmployees) {
+          let list = [...dbEmployees];
+          const hasAdmin = list.some(
+            (e) => e.designation === "Super Admin" || e.username === "smartadmin",
+          );
+          if (!hasAdmin) {
+            list.push({
+              id: "ADMIN001",
+              name: "Super Admin",
+              phone: "0000000000",
+              email: "admin@smartsave.com",
+              address: "System Administrator",
+              aadhaar: "000000000000",
+              designation: "Super Admin",
+              branch: "Head Office",
+              username: "smartadmin",
+              password: "Ani@2024",
+              dailyTarget: "0",
+              monthlySalary: "0",
+              commissionPercentage: "0",
+              joinDate: new Date().toISOString().split("T")[0],
+              status: "Active",
+            });
+          }
+          setEmployees(list);
+        }
+        if (dbAttendance) setAttendance(dbAttendance);
+        if (dbLoginHistory) setLoginHistory(dbLoginHistory);
+        if (dbCommissionPayments) setCommissionPayments(dbCommissionPayments);
+        if (dbReminderHistory) setReminderHistory(dbReminderHistory);
+        if (dbAuditLogs) setAuditLogs(dbAuditLogs);
+      } catch (err) {
+        console.warn("Notice loading data from Supabase:", err);
+      } finally {
+        setIsSupabaseSchemaMissing(supabaseService.isSchemaMissing());
+      }
+    }
+    loadSupabaseData();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("smartsave_members", JSON.stringify(members));
@@ -340,25 +421,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       else if (action.includes("Profile")) inferredModule = "Profile";
     }
 
-    setAuditLogs((prev) => [
-      {
-        id: Math.random().toString(36).substr(2, 9),
-        action,
-        details,
-        timestamp: new Date().toISOString(),
-        username,
-        role,
-        module: inferredModule,
-        status,
-        ipAddress: "192.168.1." + Math.floor(Math.random() * 255), // Placeholder
-        device: "Web Browser", // Placeholder
-      },
-      ...prev,
-    ]);
+    const newLog: AuditLog = {
+      id: Math.random().toString(36).substr(2, 9),
+      action,
+      details,
+      timestamp: new Date().toISOString(),
+      username,
+      role,
+      module: inferredModule,
+      status,
+      ipAddress: "192.168.1." + Math.floor(Math.random() * 255), // Placeholder
+      device: "Web Browser", // Placeholder
+    };
+
+    setAuditLogs((prev) => [newLog, ...prev]);
+    supabaseService.saveAuditLog(newLog);
   };
 
   const clearAuditLogs = () => {
     setAuditLogs([]);
+    supabaseService.clearAuditLogs();
   };
 
   const addMember = (member: Omit<Member, "id">) => {
@@ -371,67 +453,68 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         ? currentUser.name || currentUser.username
         : "Admin";
 
-    setMembers((prev) => {
-      const maxId = prev.reduce((max, m) => {
-        const cleanedId = m.id.replace("MEM-", "").replace("MEM", "");
-        const num = parseInt(cleanedId, 10);
-        return isNaN(num) ? max : Math.max(max, num);
-      }, 0);
-      const newId = `MEM-${String(maxId + 1).padStart(3, "0")}`;
-      const planUnits =
-        member.planUnits ||
-        Math.round(parseInt(member.dailyAmount || "127", 10) / 127) ||
-        1;
-      const generatedPlans = Array.from({ length: planUnits }, (_, idx) => ({
-        id: `${newId}-PLAN-${idx + 1}`,
-        dailyAmount: 127,
-        status: "Active" as const,
-        startDate: member.joinDate || new Date().toISOString().split("T")[0],
-      }));
-      const newMember = {
-        ...member,
-        id: newId,
-        planUnits,
-        dailyAmount: (planUnits * 127).toString(),
-        registeredBy,
-        registrationStatus: "Verified",
-        plans: generatedPlans,
-      } as Member;
-      addAuditLog(
-        "Create Member",
-        `Created member ${newId} (${newMember.name})`,
-      );
+    const maxId = members.reduce((max, m) => {
+      const cleanedId = m.id.replace("MEM-", "").replace("MEM", "");
+      const num = parseInt(cleanedId, 10);
+      return isNaN(num) ? max : Math.max(max, num);
+    }, 0);
+    const newId = `MEM-${String(maxId + 1).padStart(3, "0")}`;
+    const planUnits =
+      member.planUnits ||
+      Math.round(parseInt(member.dailyAmount || "127", 10) / 127) ||
+      1;
+    const generatedPlans = Array.from({ length: planUnits }, (_, idx) => ({
+      id: `${newId}-PLAN-${idx + 1}`,
+      dailyAmount: 127,
+      status: "Active" as const,
+      startDate: member.joinDate || new Date().toISOString().split("T")[0],
+    }));
+    const newMember: Member = {
+      ...member,
+      id: newId,
+      planUnits,
+      dailyAmount: (planUnits * 127).toString(),
+      registeredBy,
+      registrationStatus: "Verified",
+      plans: generatedPlans,
+    };
 
-      // Auto-create Registration Fee collection
-      setCollections((prevCols) => {
-        const count = prevCols.length + 1;
-        const prefix = settings?.receiptPrefix || "RCT";
-        const newReceiptNo = `${prefix}${count.toString().padStart(4, "0")}-${Math.floor(
-          Math.random() * 1000,
-        )
-          .toString()
-          .padStart(3, "0")}`;
-        const regFeeCollection: Collection = {
-          id: Math.random().toString(36).substr(2, 9),
-          receiptNo: newReceiptNo,
-          memberId: newId,
-          memberName: newMember.name,
-          amount: settings.registrationFee || "2500",
-          type: "Registration Fee",
-          notes: "Auto-generated registration fee",
-          timestamp: new Date().toISOString(),
-          status: "Completed",
-          collectedBy: registeredBy,
-          collectedByName: registeredByName,
-        };
-        return [regFeeCollection, ...prevCols];
-      });
+    const count = collections.length + 1;
+    const prefix = settings?.receiptPrefix || "RCT";
+    const newReceiptNo = `${prefix}${count.toString().padStart(4, "0")}-${Math.floor(
+      Math.random() * 1000,
+    )
+      .toString()
+      .padStart(3, "0")}`;
+    const regFeeCollection: Collection = {
+      id: Math.random().toString(36).substr(2, 9),
+      receiptNo: newReceiptNo,
+      memberId: newId,
+      memberName: newMember.name,
+      amount: settings.registrationFee || "2500",
+      type: "Registration Fee",
+      notes: "Auto-generated registration fee",
+      timestamp: new Date().toISOString(),
+      status: "Completed",
+      collectedBy: registeredBy,
+      collectedByName: registeredByName,
+    };
 
-      return [newMember, ...prev];
-    });
+    setMembers((prev) => [newMember, ...prev]);
+    setCollections((prevCols) => [regFeeCollection, ...prevCols]);
+
+    // Save to Supabase
+    supabaseService.saveMember(newMember);
+    supabaseService.saveCollection(regFeeCollection);
+
+    addAuditLog(
+      "Create Member",
+      `Created member ${newId} (${newMember.name})`,
+    );
   };
 
   const updateMember = (id: string, member: Partial<Member>) => {
+    let updatedMember: Member | null = null;
     setMembers((prev) =>
       prev.map((m) => {
         if (m.id !== id) return m;
@@ -466,16 +549,29 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             updated.plans = [...newActivePlans, ...nonActivePlans];
           }
         }
+        updatedMember = updated;
         return updated;
       }),
     );
     addAuditLog("Update Member", `Updated member details for ${id}`);
+
+    setTimeout(() => {
+      if (updatedMember) {
+        supabaseService.saveMember(updatedMember);
+      } else {
+        const found = members.find((m) => m.id === id);
+        if (found) {
+          supabaseService.saveMember({ ...found, ...member });
+        }
+      }
+    }, 50);
   };
 
   const deleteMember = (id: string) => {
     setMembers((prev) => prev.filter((m) => m.id !== id));
     setCollections((prev) => prev.filter((c) => c.memberId !== id));
     addAuditLog("Delete Member", `Deleted member ${id} and their collections`);
+    supabaseService.deleteMember(id);
   };
 
   const addMemberPlan = (
@@ -483,6 +579,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     dailyAmount: number,
     startDate?: string,
   ) => {
+    let updatedMember: Member | null = null;
     setMembers((prev) => {
       const updated = prev.map((m) => {
         if (m.id !== memberId) return m;
@@ -508,7 +605,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           0,
         );
 
-        return {
+        const newM = {
           ...m,
           plans: updatedPlans,
           dailyAmount: totalDaily.toString(),
@@ -516,6 +613,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           status: (activePlans.length > 0 ? "Active" : "Inactive") as
             "Active" | "Inactive",
         };
+        updatedMember = newM;
+        return newM;
       });
       addAuditLog(
         "Add Plan",
@@ -523,6 +622,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       );
       return updated;
     });
+
+    setTimeout(() => {
+      if (updatedMember) {
+        supabaseService.saveMember(updatedMember);
+      }
+    }, 50);
   };
 
   const updateMemberPlanStatus = (
@@ -530,6 +635,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     planId: string,
     newStatus: "Active" | "Paused" | "Closed",
   ) => {
+    let updatedMember: Member | null = null;
     setMembers((prev) => {
       const updated = prev.map((m) => {
         if (m.id !== memberId) return m;
@@ -551,7 +657,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           0,
         );
 
-        return {
+        const newM = {
           ...m,
           plans: updatedPlans,
           dailyAmount: totalDaily.toString(),
@@ -559,6 +665,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           status: (activePlans.length > 0 ? "Active" : "Inactive") as
             "Active" | "Inactive",
         };
+        updatedMember = newM;
+        return newM;
       });
       addAuditLog(
         "Update Plan Status",
@@ -566,6 +674,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       );
       return updated;
     });
+
+    setTimeout(() => {
+      if (updatedMember) {
+        supabaseService.saveMember(updatedMember);
+      }
+    }, 50);
   };
 
   const addCollection = (
@@ -596,9 +710,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       collectedByName,
     } as Collection;
 
-    setCollections((prev) => {
-      return [newCollection, ...prev];
-    });
+    setCollections((prev) => [newCollection, ...prev]);
 
     addAuditLog(
       "Add Collection",
@@ -613,47 +725,91 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       );
     }
 
+    // Save to Supabase
+    supabaseService.saveCollection(newCollection);
+
     return newCollection;
   };
 
   const updateCollection = (id: string, updates: Partial<Collection>) => {
+    let updatedCollection: Collection | null = null;
     setCollections((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+      prev.map((c) => {
+        if (c.id === id) {
+          const updated = { ...c, ...updates };
+          updatedCollection = updated;
+          return updated;
+        }
+        return c;
+      }),
     );
     addAuditLog("Update Collection", `Updated collection ${id}`);
+
+    setTimeout(() => {
+      if (updatedCollection) {
+        supabaseService.saveCollection(updatedCollection);
+      } else {
+        const found = collections.find((c) => c.id === id);
+        if (found) {
+          supabaseService.saveCollection({ ...found, ...updates });
+        }
+      }
+    }, 50);
   };
 
   const deleteCollection = (id: string) => {
     setCollections((prev) => prev.filter((c) => c.id !== id));
     addAuditLog("Delete Collection", `Deleted collection ${id}`);
+    supabaseService.deleteCollection(id);
   };
 
   const addEmployee = (employee: Omit<Employee, "id">) => {
-    setEmployees((prev) => {
-      const maxId = prev.reduce((max, e) => {
-        const num = parseInt(e.id.replace("EMP", ""), 10);
-        return isNaN(num) ? max : Math.max(max, num);
-      }, 0);
-      const newId = `EMP${String(maxId + 1).padStart(3, "0")}`;
-      const newEmployee = { ...employee, id: newId } as Employee;
-      addAuditLog(
-        "Create Employee",
-        `Created employee ${newId} (${newEmployee.name})`,
-      );
-      return [newEmployee, ...prev];
-    });
+    const maxId = employees.reduce((max, e) => {
+      const num = parseInt(e.id.replace("EMP", ""), 10);
+      return isNaN(num) ? max : Math.max(max, num);
+    }, 0);
+    const newId = `EMP${String(maxId + 1).padStart(3, "0")}`;
+    const newEmployee = { ...employee, id: newId } as Employee;
+
+    setEmployees((prev) => [newEmployee, ...prev]);
+    supabaseService.saveEmployee(newEmployee);
+
+    addAuditLog(
+      "Create Employee",
+      `Created employee ${newId} (${newEmployee.name})`,
+    );
   };
 
   const updateEmployee = (id: string, employee: Partial<Employee>) => {
+    let updatedEmployee: Employee | null = null;
     setEmployees((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, ...employee } : e)),
+      prev.map((e) => {
+        if (e.id === id) {
+          const updated = { ...e, ...employee };
+          updatedEmployee = updated;
+          return updated;
+        }
+        return e;
+      }),
     );
     addAuditLog("Update Employee", `Updated employee details for ${id}`);
+
+    setTimeout(() => {
+      if (updatedEmployee) {
+        supabaseService.saveEmployee(updatedEmployee);
+      } else {
+        const found = employees.find((e) => e.id === id);
+        if (found) {
+          supabaseService.saveEmployee({ ...found, ...employee });
+        }
+      }
+    }, 50);
   };
 
   const deleteEmployee = (id: string) => {
     setEmployees((prev) => prev.filter((e) => e.id !== id));
     addAuditLog("Delete Employee", `Deleted employee ${id}`);
+    supabaseService.deleteEmployee(id);
   };
 
   const markAttendance = (
@@ -662,13 +818,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     date?: string,
   ) => {
     const dateStr = date || new Date().toISOString().split("T")[0];
+    let recordToSave: AttendanceRecord | null = null;
+
     setAttendance((prev) => {
       const existingIdx = prev.findIndex(
         (a) => a.employeeId === employeeId && a.date === dateStr,
       );
       if (existingIdx > -1) {
         const updated = [...prev];
-        updated[existingIdx] = { ...updated[existingIdx], status };
+        const updatedRec = { ...updated[existingIdx], status };
+        updated[existingIdx] = updatedRec;
+        recordToSave = updatedRec;
         return updated;
       } else {
         const newRecord: AttendanceRecord = {
@@ -679,13 +839,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           checkIn:
             status === "Present" ? new Date().toLocaleTimeString() : undefined,
         };
+        recordToSave = newRecord;
         return [newRecord, ...prev];
       }
     });
+
     addAuditLog(
       "Mark Attendance",
       `Marked attendance for ${employeeId} on ${dateStr} as ${status}`,
     );
+
+    setTimeout(() => {
+      if (recordToSave) {
+        supabaseService.saveAttendance(recordToSave);
+      }
+    }, 50);
   };
 
   const addLoginHistory = (
@@ -702,9 +870,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         (navigator.userAgent.includes("Mobile") ? "Mobile" : "Desktop"),
     };
     setLoginHistory((prev) => [newRecord, ...prev]);
+    supabaseService.saveLoginHistory(newRecord);
   };
 
   const updateLogoutTime = (username: string) => {
+    let updatedRecord: LoginHistoryRecord | null = null;
     setLoginHistory((prev) => {
       const newHistory = [...prev];
       const idx = newHistory.findIndex(
@@ -712,18 +882,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           r.username === username && !r.logoutTime && r.status === "Successful",
       );
       if (idx !== -1) {
-        newHistory[idx] = {
+        const updated = {
           ...newHistory[idx],
           logoutTime: new Date().toISOString(),
         };
+        newHistory[idx] = updated;
+        updatedRecord = updated;
       }
       return newHistory;
     });
+
+    setTimeout(() => {
+      if (updatedRecord) {
+        supabaseService.saveLoginHistory(updatedRecord);
+      }
+    }, 50);
   };
 
   const updateSettings = (updates: Partial<CompanySettings>) => {
-    setSettings((prev) => ({ ...prev, ...updates }));
+    const newSettings = { ...settings, ...updates };
+    setSettings(newSettings);
     addAuditLog("Update Settings", `Updated company settings`);
+    supabaseService.saveSettings(newSettings);
   };
 
   const backupData = () => {
@@ -754,34 +934,44 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     try {
       const parsed = JSON.parse(jsonString);
       if (parsed.members && Array.isArray(parsed.members)) {
-        setMembers(upgradeMembers(parsed.members));
+        const upgraded = upgradeMembers(parsed.members);
+        setMembers(upgraded);
+        upgraded.forEach((m) => supabaseService.saveMember(m));
       }
       if (parsed.collections && Array.isArray(parsed.collections)) {
         setCollections(parsed.collections);
+        parsed.collections.forEach((c: Collection) => supabaseService.saveCollection(c));
       }
       if (parsed.settings) {
         setSettings(parsed.settings);
+        supabaseService.saveSettings(parsed.settings);
       }
       if (parsed.auditLogs && Array.isArray(parsed.auditLogs)) {
         setAuditLogs(parsed.auditLogs);
+        parsed.auditLogs.forEach((l: AuditLog) => supabaseService.saveAuditLog(l));
       }
       if (parsed.employees && Array.isArray(parsed.employees)) {
         setEmployees(parsed.employees);
+        parsed.employees.forEach((e: Employee) => supabaseService.saveEmployee(e));
       }
       if (parsed.attendance && Array.isArray(parsed.attendance)) {
         setAttendance(parsed.attendance);
+        parsed.attendance.forEach((a: AttendanceRecord) => supabaseService.saveAttendance(a));
       }
       if (parsed.loginHistory && Array.isArray(parsed.loginHistory)) {
         setLoginHistory(parsed.loginHistory);
+        parsed.loginHistory.forEach((lh: LoginHistoryRecord) => supabaseService.saveLoginHistory(lh));
       }
       if (
         parsed.commissionPayments &&
         Array.isArray(parsed.commissionPayments)
       ) {
         setCommissionPayments(parsed.commissionPayments);
+        parsed.commissionPayments.forEach((cp: CommissionPayment) => supabaseService.saveCommissionPayment(cp));
       }
       if (parsed.reminderHistory && Array.isArray(parsed.reminderHistory)) {
         setReminderHistory(parsed.reminderHistory);
+        parsed.reminderHistory.forEach((rh: ReminderHistoryItem) => supabaseService.saveReminderHistoryItem(rh));
       }
       addAuditLog("Restore Data", `Restored data from backup`);
     } catch (e) {
@@ -798,6 +988,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       timestamp: new Date().toISOString(),
     };
     setCommissionPayments((prev) => [newPayment, ...prev]);
+    supabaseService.saveCommissionPayment(newPayment);
+
     addAuditLog(
       "Commission Paid",
       `Recorded commission payment of ₹${payment.amount} for employee ${payment.employeeName} (${payment.employeeId})`,
@@ -808,10 +1000,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     id: string,
     updates: Partial<CommissionPayment>,
   ) => {
+    let updatedPayment: CommissionPayment | null = null;
     setCommissionPayments((prev) =>
       prev.map((p) => {
         if (p.id === id) {
           const updated = { ...p, ...updates };
+          updatedPayment = updated;
           const detailsStr =
             updates.status === "Paid" ? "marked as Paid" : "marked as Pending";
           addAuditLog(
@@ -823,6 +1017,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         return p;
       }),
     );
+
+    setTimeout(() => {
+      if (updatedPayment) {
+        supabaseService.saveCommissionPayment(updatedPayment);
+      }
+    }, 50);
   };
 
   const deleteCommissionPayment = (id: string) => {
@@ -832,6 +1032,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       "Commission Updated",
       `Deleted commission record ${id} for ${p?.employeeName || "unknown"}`,
     );
+    supabaseService.deleteCommissionPayment(id);
   };
 
   const addReminderHistoryItem = (item: Omit<ReminderHistoryItem, "id">) => {
@@ -840,6 +1041,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       id: Math.random().toString(36).substr(2, 9),
     };
     setReminderHistory((prev) => [newItem, ...prev]);
+    supabaseService.saveReminderHistoryItem(newItem);
+
     addAuditLog(
       "Sent Reminder",
       `Sent reminder to member ${item.memberName} (${item.memberId}) with outstanding amount ₹${item.dueAmount}`,
@@ -858,6 +1061,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         attendance,
         loginHistory,
         commissionPayments,
+        isSupabaseSchemaMissing,
         addMember,
         updateMember,
         deleteMember,

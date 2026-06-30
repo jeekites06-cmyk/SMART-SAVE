@@ -259,17 +259,21 @@ export default function Members() {
   };
 
   const filteredMembers = members.filter((m) => {
+    if (!m) return false;
+    const nameStr = m.name || "";
+    const idStr = m.id || "";
+    const phoneStr = m.phone || "";
     const matchesSearch =
-      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.phone.includes(searchQuery);
+      nameStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      idStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      phoneStr.includes(searchQuery);
     const matchesStatus =
-      statusFilter === "All Status" || m.status === statusFilter;
+      statusFilter === "All Status" || (m.status || "Active") === statusFilter;
     
     // Check if filtered by today's registration
     const filterToday = searchParams.get("registered") === "today";
     const todayStr = new Date().toISOString().split("T")[0];
-    const matchesTodayReg = !filterToday || m.joinDate === todayStr;
+    const matchesTodayReg = !filterToday || (m.joinDate || "") === todayStr;
 
     return matchesSearch && matchesStatus && matchesTodayReg;
   });
@@ -1371,7 +1375,7 @@ export default function Members() {
             startY: 50,
             head: [["Date", "Receipt No", "Amount", "Type"]],
             body: memberCols.map(c => [
-              new Date(c.timestamp).toLocaleDateString(),
+              c.timestamp ? new Date(c.timestamp).toLocaleDateString() : "N/A",
               c.receiptNo || c.id,
               `Rs ${c.amount}`,
               c.type
@@ -1393,7 +1397,7 @@ export default function Members() {
             body: memberCols.filter(c => c.type !== "Registration Fee").map(c => {
               const breakdown = calculateCollectionBreakdown(parseInt(c.amount || "0", 10), c.type);
               return [
-                new Date(c.timestamp).toLocaleDateString(),
+                c.timestamp ? new Date(c.timestamp).toLocaleDateString() : "N/A",
                 `Rs ${c.amount}`,
                 `Rs ${breakdown.savingsFund}`,
                 `Rs ${breakdown.companyCommission}`,

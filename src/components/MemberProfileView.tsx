@@ -175,12 +175,14 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
     return collections.some(c => 
       c.memberId === viewingMember.id && 
       (c.type === "Daily Deposit" || c.type === "Daily Collection") && 
-      c.timestamp.startsWith(yesterdayStr)
+      c.timestamp && c.timestamp.startsWith(yesterdayStr)
     );
   }, [collections, viewingMember.id, yesterdayStr]);
 
   const lastReceiptNo = useMemo(() => {
-    const sorted = [...dailyCols].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const sorted = [...dailyCols]
+      .filter(c => c.timestamp)
+      .sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime());
     return sorted.length > 0 ? (sorted[0].receiptNo || sorted[0].id) : "N/A";
   }, [dailyCols]);
 
@@ -262,7 +264,9 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
       alert("No payments found to generate a ledger summary.");
       return;
     }
-    const sorted = [...dailyCols].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const sorted = [...dailyCols]
+      .filter(c => c.timestamp)
+      .sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime());
     const latestReceipt = sorted[0];
     const msg = generateWhatsAppMessage(latestReceipt, settings || {});
     openWhatsApp(viewingMember.phone, msg);
@@ -1032,7 +1036,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
                     const breakdown = calculateCollectionBreakdown(parseInt(c.amount || "0", 10), c.type);
                     return (
                       <tr key={c.id} className="hover:bg-slate-50">
-                        <td className="px-5 py-3.5">{new Date(c.timestamp).toLocaleDateString()}</td>
+                        <td className="px-5 py-3.5">{c.timestamp ? new Date(c.timestamp).toLocaleDateString() : "N/A"}</td>
                         <td className="px-5 py-3.5 text-slate-500 font-mono">{c.receiptNo || c.id}</td>
                         <td className="px-5 py-3.5 font-bold text-emerald-600">₹{c.amount}</td>
                         <td className="px-5 py-3.5 text-emerald-600">₹{breakdown.savingsFund}</td>
@@ -1080,7 +1084,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
                 <tbody className="divide-y divide-slate-100 text-slate-600 font-medium bg-white">
                   {memberCols.map(c => (
                     <tr key={c.id} className="hover:bg-slate-50">
-                      <td className="px-5 py-3.5">{new Date(c.timestamp).toLocaleDateString()}</td>
+                      <td className="px-5 py-3.5">{c.timestamp ? new Date(c.timestamp).toLocaleDateString() : "N/A"}</td>
                       <td className="px-5 py-3.5 text-slate-500 font-mono">{c.receiptNo || c.id}</td>
                       <td className="px-5 py-3.5 font-bold text-slate-800">{c.type}</td>
                       <td className="px-5 py-3.5 font-bold text-indigo-600">₹{c.amount}</td>
@@ -1123,7 +1127,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
                 <tbody className="divide-y divide-slate-100 text-slate-600 font-medium bg-white">
                   {filteredReminders.map(r => (
                     <tr key={r.id} className="hover:bg-slate-50">
-                      <td className="px-5 py-3.5">{new Date(r.reminderDate).toLocaleDateString()}</td>
+                      <td className="px-5 py-3.5">{r.reminderDate ? new Date(r.reminderDate).toLocaleDateString() : "N/A"}</td>
                       <td className="px-5 py-3.5 text-slate-500 font-mono">{r.id}</td>
                       <td className="px-5 py-3.5 font-bold text-rose-600">₹{r.dueAmount}</td>
                       <td className="px-5 py-3.5">
@@ -1154,7 +1158,7 @@ export default function MemberProfileView({ member, onClose }: MemberProfileView
                 <tbody className="divide-y divide-slate-100 text-slate-600 font-medium bg-white">
                   {filteredAuditLogs.map(log => (
                     <tr key={log.id} className="hover:bg-slate-50">
-                      <td className="px-5 py-3.5 text-slate-400 font-mono text-[10px]">{new Date(log.timestamp).toLocaleString()}</td>
+                      <td className="px-5 py-3.5 text-slate-400 font-mono text-[10px]">{log.timestamp ? new Date(log.timestamp).toLocaleString() : "N/A"}</td>
                       <td className="px-5 py-3.5 font-bold text-slate-700 uppercase tracking-wide text-[10px]">{log.action}</td>
                       <td className="px-5 py-3.5 text-slate-600 whitespace-pre-wrap">{log.details}</td>
                     </tr>
